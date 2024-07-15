@@ -19,32 +19,31 @@ export const handler = EventHandler(Payment.Events.RefundTransaction, async (evt
     console.log({amountInCents})
     console.log({totalAmountInCentsPaidByUser})
     let index = 0;
-    while(amountInCents >= 0){
+    while(amountInCents > 0){
         const fiatPayment = fiatPayments[index];
+        index = index + 1
         if(!fiatPayment){
             break
         }
-        if(fiatPayment.amount_in_cents >= amountInCents){
+        if(amountInCents < fiatPayment.amount_in_cents){
             await Payment.refundPaymentIntent(fiatPayment.payment_id,amountInCents)
-            
             await Supabase.updateFiatPayment(fiatPayment.payment_id,{
                 amount_in_cents: fiatPayment.amount_in_cents - amountInCents,
                 is_refunded: false,
                 is_refund_triggered:true,
             })
-            amountInCents -= fiatPayment.amount_in_cents
+            amountInCents = 0
         }
-        if(fiatPayment.amount_in_cents <= amountInCents){
+        if (amountInCents >= fiatPayment.amount_in_cents){
             await Payment.refundPaymentIntent(fiatPayment.payment_id,fiatPayment.amount_in_cents)
-           
             await Supabase.updateFiatPayment(fiatPayment.payment_id,{
                 amount_in_cents: 0,
                 is_refunded: true,
                 is_refund_triggered:true,
             })
-            amountInCents = 0
+            amountInCents -= fiatPayment.amount_in_cents
         }
-        index = index + 1
+        
     }
 });
 
