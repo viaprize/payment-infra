@@ -1,6 +1,6 @@
 import { StackContext, Api, EventBus, Config, Table, Cron, RDS } from "sst/constructs";
 
-export function API({ stack }: StackContext) {
+export function API({ stack,app }: StackContext) {
 
   const GASLESS_API_KEY = new Config.Secret(stack, "GASLESS_API_KEY");
   const RESERVE_KEY = new Config.Secret(stack, "RESERVE_KEY")
@@ -34,6 +34,7 @@ export function API({ stack }: StackContext) {
   const cron = new Cron(stack, "Cron", {
     schedule: "rate(2 minutes)",
     job: "packages/functions/src/cron/lambda.handler",
+    enabled: !app.local,
     
 
   });
