@@ -1,4 +1,4 @@
-export * as paypalPayment from "./payment";
+export * as paypalPayment from "./paypalPayments";
 import { Config } from "sst/node/config";
 import {Stripe} from "stripe"
 import { event } from "./event";
