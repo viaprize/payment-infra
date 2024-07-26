@@ -12,13 +12,18 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "sst": "^2.43.0",
+    "@tsconfig/node18": "^18.2.4",
+    "@types/paypal__checkout-server-sdk": "^1.0.8",
     "aws-cdk-lib": "2.142.1",
     "constructs": "10.3.0",
-    "typescript": "^5.4.5",
-    "@tsconfig/node18": "^18.2.4"
+    "sst": "^2.43.0",
+    "typescript": "^5.4.5"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "stripe": "^15.10.0"
+  }
 }
