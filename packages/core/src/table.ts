@@ -29,3 +29,25 @@ export const getLatestHash = async () => {
       console.log({results})
       return results.Item?.transactionHash
 }
+
+export const updatePaypalMetadata = async (customId: string, metadata: string) => {
+  return await dynamoDb.put({
+    TableName:Table["paypal-metadata"].tableName,
+    Item:{
+      customId,
+      metadata,
+      expireAt: Math.floor(Date.now() / 1000) + 432000
+    },
+  }).promise();
+  
+}
+
+export const getPaypalMetadata = async (customId: string) => {
+  const results = await dynamoDb.get({
+    TableName:Table["paypal-metadata"].tableName,
+    Key:{
+      customId
+    }
+  }).promise();
+  return results.Item?.metadata;
+}

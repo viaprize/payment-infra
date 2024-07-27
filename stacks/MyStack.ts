@@ -17,17 +17,29 @@ export function API({ stack,app }: StackContext) {
   const PAYMENT_SECRET_KEY = new Config.Secret(stack,"PAYMENT_SECRET_KEY")
   const TESTMODE_PAYPAL_CLIENT_ID = new Config.Secret(stack, "TESTMODE_PAYPAL_CLIENT_ID")
   const TESTMODE_PAYPAL_SECRET_KEY = new Config.Secret(stack, "TESTMODE_PAYPAL_SECRET_KEY")
-  const TESTMODE_PAYPAL_WEBHOOK_SECRET = new Config.Secret(stack, "TESTMODE_PAYPAL_WEBHOOK_SECRET")
+  const PAYPAL_CLIENT_ID = new Config.Secret(stack, "PAYPAL_CLIENT_ID")
+  const PAYPAL_SECRET_KEY = new Config.Secret(stack, "PAYPAL_SECRET_KEY")
+  // const TESTMODE_PAYPAL_WEBHOOK_SECRET = new Config.Secret(stack, "TESTMODE_PAYPAL_WEBHOOK_SECRET")
 
   const table = new Table(stack, "wallet-hashes", {
     fields: {
       index:"number",
       transactionHash: "string",
+
       
     },
     
     primaryIndex: { partitionKey: "index" },
   });
+
+  const paypalMetadataTable = new Table(stack, "paypal-metadata", {
+    fields:{
+      customId: "string",
+      metadata: "string",
+    },
+    primaryIndex: { partitionKey: "customId" },
+    timeToLiveAttribute:"expireAt"
+  })
   const bus = new EventBus(stack, "wallet-bus", {
     defaults: {
       retries: 10,
@@ -47,7 +59,7 @@ export function API({ stack,app }: StackContext) {
   const api = new Api(stack, "wallet-api", {
     defaults: {
       function: {
-        bind: [bus,table,cron, GASLESS_API_KEY, RESERVE_KEY, OP_RPC_URL, GASLESS_KEY, PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,SUPABASE_URL,SUPABASE_ANON_KEY,BASE_RPC_URL,TESTMODE_PAYMENT_API_KEY,TESTMODE_PAYMENT_WEBHOOK_SECRET,TELEGRAM_BOT_TOKEN,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY, TESTMODE_PAYPAL_WEBHOOK_SECRET],
+        bind: [paypalMetadataTable,bus,table,cron, GASLESS_API_KEY, RESERVE_KEY, OP_RPC_URL, GASLESS_KEY, PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,SUPABASE_URL,SUPABASE_ANON_KEY,BASE_RPC_URL,TESTMODE_PAYMENT_API_KEY,TESTMODE_PAYMENT_WEBHOOK_SECRET,TELEGRAM_BOT_TOKEN,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,PAYPAL_CLIENT_ID,PAYPAL_SECRET_KEY],
         timeout:130
       },
       
@@ -66,7 +78,8 @@ export function API({ stack,app }: StackContext) {
       "POST /checkout": "packages/functions/src/checkout.create",
       "POST /checkout/webhook": "packages/functions/src/checkout.webhook",
       "POST /checkout/refund": "packages/functions/src/checkout.triggerRefundEvent",
-      "POST /paypal/checkout": "packages/functions/src/createPaypalCheckout.create"
+      "POST /checkout/paypal/webhook": "packages/functions/src/checkout-paypal.webhook",
+      "POST /checkout/paypal": "packages/functions/src/checkout-paypal.create",
       // "POST /checkout/test": "packages/functions/src/checkout.createTestCheckout",
       // "POST /checkout/test/webhook": "packages/functions/src/checkout.webhookTest",
     },
@@ -79,7 +92,7 @@ export function API({ stack,app }: StackContext) {
  
   bus.subscribe("checkout.refunded",{
     handler:"packages/functions/src/events/checkout-refunded.handler",
-    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY, TESTMODE_PAYPAL_WEBHOOK_SECRET]
+    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY]
   })
   stack.addOutputs({
     ApiEndpoint: api.url,

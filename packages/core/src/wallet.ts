@@ -76,6 +76,10 @@ const usdcAddress = {
   8453:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 } as const;
 
+const gitCoinMultiReserveFunderRoundAddress = {
+  10: "0x15fa08599EB017F89c1712d0Fe76138899FdB9db",
+  8453: "0x042623838e4893ab739a47b46D246140477e0aF1"
+}
 export const getUsdcAddress = (chainId: ChainId) => usdcAddress[chainId];
 
 export const Events = {
@@ -187,10 +191,15 @@ export async function  createTransaction(transactionData : MetaTransactionData,t
   return executeTxResponse.hash
 
 }
-
+// 6A68842910269935M
 export function getReserveFundCampaignAddress(chainId : ChainId){
   return reserveFundCampaignAddress[chainId]
 }
+
+export function getGitCoinMultiReserveFunderRoundAddress(chainId : ChainId){
+  return gitCoinMultiReserveFunderRoundAddress[chainId]
+}
+
 export async function reserveFundCampaign(contractAddress : string, amount: number,deadline : number,v : number, s: string,r: string, ethSignedMessage: string,chainId:ChainId){
   const reserveAddress = getReserveFundCampaignAddress(chainId)
   const data = encodeFunctionData({
@@ -203,6 +212,7 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
     console.log("error",error)
   })
 }
+
 
 
 export const Utils = {

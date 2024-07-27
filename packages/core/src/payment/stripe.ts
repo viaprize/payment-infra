@@ -1,7 +1,7 @@
-export * as Payment from "./payment";
+export * as Stripe from "./stripe";
 import { Config } from "sst/node/config";
 import {Stripe} from "stripe"
-import { event } from "./event";
+import { event } from "../event";
 import { z } from "zod";
 import { MetaTransactionData } from "@safe-global/safe-core-sdk-types";
 import { getContractAddress } from "viem";

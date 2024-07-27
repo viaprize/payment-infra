@@ -1,5 +1,5 @@
 import { ApiHandler, useBody, useHeader, useJsonBody } from "sst/node/api";
-import { CheckoutMetadataType, Payment } from "@typescript-starter/core/payment";
+import { CheckoutMetadataType,  Stripe} from "@typescript-starter/core/payment/stripe";
 import * as Wallet from "@typescript-starter/core/wallet";
 import {Supabase} from "@typescript-starter/core/supabase"
 import { Config } from "sst/node/config";
@@ -9,7 +9,7 @@ import { Config } from "sst/node/config";
 type CheckoutData = {checkoutMetadata:CheckoutMetadataType,title:string,imageUrl:string,backendId:string,amount:number,successUrl:string,cancelUrl:string} 
 export const create = ApiHandler(async (_evt) => {
   const {checkoutMetadata,title,imageUrl,backendId,successUrl,cancelUrl} : CheckoutData = useJsonBody()
-  const checkoutUrl = await Payment.createCheckout(checkoutMetadata,title,imageUrl,successUrl,cancelUrl)
+  const checkoutUrl = await Stripe.createCheckout(checkoutMetadata,title,imageUrl,successUrl,cancelUrl)
   return {
     statusCode: 200,
     body: JSON.stringify({checkoutUrl}),
@@ -25,7 +25,7 @@ export const triggerRefundEvent = ApiHandler(async (_evt) => {
         };
     }
     const {contractAddress,refundAddress,amountInUsdc} : {contractAddress:string,refundAddress:string,amountInUsdc:string} = useJsonBody()
-    const event = await Payment.Events.RefundTransaction.publish({
+    const event = await Stripe.Events.RefundTransaction.publish({
         amountInUsdc: parseInt(amountInUsdc),
         contractAddress: contractAddress,
         refundAddress: refundAddress
@@ -38,7 +38,7 @@ export const triggerRefundEvent = ApiHandler(async (_evt) => {
 })
 export const createTestCheckout = ApiHandler(async (_evt) => {
     const {checkoutMetadata,title,imageUrl,backendId,successUrl,cancelUrl} : CheckoutData = useJsonBody()
-    const checkoutUrl = await Payment.createTestCheckout(checkoutMetadata,title,imageUrl,successUrl,cancelUrl)
+    const checkoutUrl = await Stripe.createTestCheckout(checkoutMetadata,title,imageUrl,successUrl,cancelUrl)
     return {
       statusCode: 200,
       body: JSON.stringify({checkoutUrl}),
@@ -56,7 +56,7 @@ export const webhook = ApiHandler(async (_evt) => {
     }
     let event;
     try {
-        event = await Payment.webhook(body ,sig)
+        event = await Stripe.webhook(body ,sig)
     } catch (err) {
         return {
             statusCode: 400,
@@ -164,7 +164,7 @@ export const webhookTest = ApiHandler(async (_evt) => {
     }
     let event;
     try {
-        event = await Payment.webhookTest(body ,sig)
+        event = await Stripe.webhookTest(body ,sig)
     } catch (err) {
         return {
             statusCode: 400,
