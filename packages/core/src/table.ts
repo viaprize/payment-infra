@@ -31,15 +31,16 @@ export const getLatestHash = async () => {
 }
 
 export const updatePaypalMetadata = async (customId: string, metadata: string) => {
-  return await dynamoDb.put({
+  return await dynamoDb.update({
     TableName:Table["paypal-metadata"].tableName,
-    Item:{
-      customId,
-      metadata,
-      expireAt: Math.floor(Date.now() / 1000) + 432000
+    Key: {
+      customId
     },
-  }).promise();
-  
+    UpdateExpression: "SET metadata = :metadata",
+    ExpressionAttributeValues: {
+      ":metadata": metadata,
+    },
+  }).promise()
 }
 
 export const getPaypalMetadata = async (customId: string) => {
