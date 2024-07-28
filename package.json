@@ -23,7 +23,6 @@
     "packages/*"
   ],
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.3",
-    "stripe": "^15.10.0"
+  
   }
 }

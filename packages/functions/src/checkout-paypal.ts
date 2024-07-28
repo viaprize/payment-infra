@@ -3,15 +3,17 @@ import { Paypal } from "@typescript-starter/core/payment/paypal";
 import { WebhookEvent } from "@typescript-starter/core/types/paypal.types";
 import { Wallet } from "@typescript-starter/core/wallet";
 import { Table } from "@typescript-starter/core/table";
+import { sep } from "path";
 
 
 
 
 
 export const create = ApiHandler(async (_evt) => {
-  console.log("jskldjflsjfkljsdklfj")
+ 
   const {amount,metadata,customId} : {amount:string,metadata:string,customId:string} = useJsonBody()
   const res = await Paypal.createCheckout(amount,customId)
+  console.log({res})
   await Table.updatePaypalMetadata(customId,metadata)
   return {
     statusCode: 200,
@@ -41,7 +43,7 @@ export const webhook = ApiHandler(async (_evt) => {
      transmission_sig:transmissionSig,
      transmission_time:timeStamp,
      webhook_event:webhookEvent,
-     webhook_id:"9B460226R2159322D",
+     webhook_id:"839864068R892862M",
   })
 
   if(!isVerified){
@@ -82,6 +84,26 @@ export const webhook = ApiHandler(async (_evt) => {
 
 });
 
+
+export const captureCheckout = ApiHandler(async (_evt) => {
+  const {orderId,customId} : {orderId:string,customId:string} = useJsonBody()
+  const res :any = await Paypal.captureOrder(orderId)
+  console.log({res})
+  if(res.status === "COMPLETED"){
+    const rawTxData = await Table.getPaypalMetadata(customId)
+    console.log({rawTxData})
+    const hash = await Wallet.createTransaction({
+      data: rawTxData,
+      to: Wallet.getGitCoinMultiReserveFunderRoundAddress(8453),
+      value: "0",
+    },"gasless",8453)
+    console.log({hash})
+  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify(res),
+  };
+})
 // export const webhook = ApiHandler(async (_evt) => {
 
 // })

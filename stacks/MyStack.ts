@@ -59,7 +59,16 @@ export function API({ stack,app }: StackContext) {
   const api = new Api(stack, "wallet-api", {
     defaults: {
       function: {
-        bind: [paypalMetadataTable,bus,table,cron, GASLESS_API_KEY, RESERVE_KEY, OP_RPC_URL, GASLESS_KEY, PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,SUPABASE_URL,SUPABASE_ANON_KEY,BASE_RPC_URL,TESTMODE_PAYMENT_API_KEY,TESTMODE_PAYMENT_WEBHOOK_SECRET,TELEGRAM_BOT_TOKEN,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,PAYPAL_CLIENT_ID,PAYPAL_SECRET_KEY],
+        bind: [
+          paypalMetadataTable,
+          bus,
+          table,
+          cron,
+          GASLESS_API_KEY,
+          RESERVE_KEY,
+          OP_RPC_URL,
+          GASLESS_KEY,
+          PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,SUPABASE_URL,SUPABASE_ANON_KEY,BASE_RPC_URL,TESTMODE_PAYMENT_API_KEY,TESTMODE_PAYMENT_WEBHOOK_SECRET,TELEGRAM_BOT_TOKEN,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,PAYPAL_CLIENT_ID,PAYPAL_SECRET_KEY],
         timeout:130
       },
       
@@ -80,6 +89,7 @@ export function API({ stack,app }: StackContext) {
       "POST /checkout/refund": "packages/functions/src/checkout.triggerRefundEvent",
       "POST /checkout/paypal/webhook": "packages/functions/src/checkout-paypal.webhook",
       "POST /checkout/paypal": "packages/functions/src/checkout-paypal.create",
+      "POST /checkout/paypal/capture": "packages/functions/src/checkout-paypal.captureCheckout",
       // "POST /checkout/test": "packages/functions/src/checkout.createTestCheckout",
       // "POST /checkout/test/webhook": "packages/functions/src/checkout.webhookTest",
     },

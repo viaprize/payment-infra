@@ -130,6 +130,7 @@ export const createCheckout = async (amount: string,customId:string) => {
         body: JSON.stringify(payload),
     });
     const data = await response.json() as PaymentOrder
+    
     return data;
 }
 
@@ -150,4 +151,23 @@ export const verifyWebhook = async (webhookPayload : WebhookPayload) => {
 
     
     return data.verification_status === "SUCCESS"
+}
+
+export const captureOrder = async (orderId:string) => {
+  const accessToken = await generateAccessToken();
+  const url = `${BASE_PAYPAL_URL}/v2/checkout/orders/${orderId}/capture`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    }
+  });
+
+  const data = await response.json();
+
+  return data;
+
+
 }
