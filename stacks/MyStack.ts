@@ -19,6 +19,7 @@ export function API({ stack,app }: StackContext) {
   const TESTMODE_PAYPAL_SECRET_KEY = new Config.Secret(stack, "TESTMODE_PAYPAL_SECRET_KEY")
   const PAYPAL_CLIENT_ID = new Config.Secret(stack, "PAYPAL_CLIENT_ID")
   const PAYPAL_SECRET_KEY = new Config.Secret(stack, "PAYPAL_SECRET_KEY")
+  const AES_SECRET_KEY = new Config.Secret(stack,"AES_SECRET_KEY")
   // const TESTMODE_PAYPAL_WEBHOOK_SECRET = new Config.Secret(stack, "TESTMODE_PAYPAL_WEBHOOK_SECRET")
 
   const table = new Table(stack, "wallet-hashes", {
@@ -68,7 +69,21 @@ export function API({ stack,app }: StackContext) {
           RESERVE_KEY,
           OP_RPC_URL,
           GASLESS_KEY,
-          PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,SUPABASE_URL,SUPABASE_ANON_KEY,BASE_RPC_URL,TESTMODE_PAYMENT_API_KEY,TESTMODE_PAYMENT_WEBHOOK_SECRET,TELEGRAM_BOT_TOKEN,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,PAYPAL_CLIENT_ID,PAYPAL_SECRET_KEY],
+          PAYMENT_API_KEY,
+          PAYMENT_WEBHOOK_SECRET,
+          SUPABASE_URL,
+          SUPABASE_ANON_KEY,
+          BASE_RPC_URL,
+          TESTMODE_PAYMENT_API_KEY,
+          TESTMODE_PAYMENT_WEBHOOK_SECRET,
+          TELEGRAM_BOT_TOKEN,
+          PAYMENT_SECRET_KEY, 
+          TESTMODE_PAYPAL_CLIENT_ID, 
+          TESTMODE_PAYPAL_SECRET_KEY,
+          PAYPAL_CLIENT_ID,
+          PAYPAL_SECRET_KEY,
+          AES_SECRET_KEY
+        ],
         timeout:130
       },
       
@@ -97,12 +112,12 @@ export function API({ stack,app }: StackContext) {
 
   bus.subscribe("wallet.transaction", {
     handler: "packages/functions/src/events/transaction-created.handler",
-    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY]
+    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY]
   });
  
   bus.subscribe("checkout.refunded",{
     handler:"packages/functions/src/events/checkout-refunded.handler",
-    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY]
+    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,AES_SECRET_KEY]
   })
   stack.addOutputs({
     ApiEndpoint: api.url,

@@ -12,12 +12,16 @@
     "vitest": "^1.6.0"
   },
   "dependencies": {
+    "@gitcoin/gitcoin-chain-data": "^1.0.25",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@safe-global/api-kit": "^2.4.1",
     "@safe-global/protocol-kit": "^4.0.1",
     "@safe-global/safe-core-sdk-types": "^5.0.1",
     "@supabase/supabase-js": "^2.43.5",
+    "@types/lodash": "^4.17.7",
+    "aes-encryption": "^1.0.4",
     "aws-sdk": "^2.1650.0",
+    "lodash": "^4.17.21",
     "nanoid": "^5.0.7",
     "puregram": "^2.26.2",
     "stripe": "^15.10.0",

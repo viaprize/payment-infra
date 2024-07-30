@@ -7,13 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@paypal/checkout-server-sdk':
-        specifier: ^1.0.3
-        version: 1.0.3
-      stripe:
-        specifier: ^15.10.0
-        version: 15.10.0
     devDependencies:
       '@tsconfig/node18':
         specifier: ^18.2.4
@@ -36,6 +29,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@gitcoin/gitcoin-chain-data':
+        specifier: ^1.0.25
+        version: 1.0.25(typescript@5.4.5)(zod@3.23.8)
       '@paypal/checkout-server-sdk':
         specifier: ^1.0.3
         version: 1.0.3
@@ -51,9 +47,18 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.43.5
         version: 2.43.5
+      '@types/lodash':
+        specifier: ^4.17.7
+        version: 4.17.7
+      aes-encryption:
+        specifier: ^1.0.4
+        version: 1.0.4
       aws-sdk:
         specifier: ^2.1650.0
         version: 2.1650.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       nanoid:
         specifier: ^5.0.7
         version: 5.0.7
@@ -2092,6 +2097,20 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
+  /@gitcoin/gitcoin-chain-data@1.0.25(typescript@5.4.5)(zod@3.23.8):
+    resolution: {integrity: sha512-0FK9im7lc6s0gvDuqkpUw7gZih8AJ5j2sb6Gk54/eMJ5PNKWj6xtwl/WhiZ8pVzLP2rhnTtSiV0t+eYHTtjlEA==}
+    engines: {node: '>=16.15.0', npm: '>=8.5.5'}
+    peerDependencies:
+      typescript: ^5.0.0
+    dependencies:
+      typescript: 5.4.5
+      viem: 2.13.7(typescript@5.4.5)(zod@3.23.8)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - zod
+    dev: false
+
   /@graphql-tools/executor@0.0.18(graphql@16.8.1):
     resolution: {integrity: sha512-xZC0C+/npXoSHBB5bsJdwxDLgtl1Gu4fL9J2TPQmXoZC3L2N506KJoppf9LgWdHU/xK04luJrhP6WjhfkIN0pQ==}
     peerDependencies:
@@ -3284,6 +3303,10 @@ packages:
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
     dev: true
 
+  /@types/lodash@4.17.7:
+    resolution: {integrity: sha512-8wTvZawATi/lsmNu10/j2hk1KEP0IvjubqPE3cu1Xz7xfXXt5oCq3SNUz4fMIP4XGF9Ky+Ue2tBA3hcS7LSBlA==}
+    dev: false
+
   /@types/node@18.15.13:
     resolution: {integrity: sha512-N+0kuo9KgrUQ1Sn/ifDXsvg0TTleP7rIy4zOBGECxAljqvqfqpTfzx0Q1NUedOixRMBfe2Whhb056a42cWs26Q==}
     dev: false
@@ -3453,6 +3476,11 @@ packages:
     resolution: {integrity: sha512-DnyqqifT4Jrcvb8USYjp6FHtBpEIz1mnXu6pTRHZ0RL69LbQYiO+0lDFg5+OKA7U29oWSs3a/i8fhn8ZcceIWg==}
     engines: {node: '>=12.0'}
     dev: true
+
+  /aes-encryption@1.0.4:
+    resolution: {integrity: sha512-Mb3UAbIvY0wiK6GjZGolVLXvIRHukUoSUQOOItjHNGuEWuClSsBPWEMdLYbCPuIKIFF5YkHTtWT+VqbLIQK/Og==}
+    engines: {node: '>= 0.10.0'}
+    dev: false
 
   /aes-js@4.0.0-beta.5:
     resolution: {integrity: sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q==}
@@ -5341,7 +5369,6 @@ packages:
 
   /lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-    dev: true
 
   /log-symbols@5.1.0:
     resolution: {integrity: sha512-l0x2DvrW294C9uDCoQe1VSU4gf529FkSZ6leBl4TiqZH/e+0R7hSfHQBNut2mNygDgHwvYHfFLn6Oxb3VWj2rA==}

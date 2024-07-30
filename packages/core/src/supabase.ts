@@ -8,7 +8,6 @@ const supabase = createClient<Database>(
   Config.SUPABASE_ANON_KEY
 )
 
-
 export const addFundsToExtraPortal = async (funds: number,externalId:string) => {
    const currentFunds = await  supabase.from('extra_portal').select('funds').eq('externalId', externalId)
    if(currentFunds.error){
@@ -64,4 +63,35 @@ export const updateFiatPayment = async (payment_id:string,updated_payment: Datab
         throw new Error(updatedFiatPayment.error.message)
     }
     return updatedFiatPayment.data[0];
+}
+
+export const createGitCoinUser = async (gitcoinUser: Database["public"]["Tables"]["gitcoin_users"]["Insert"]) => {
+    const newGitCoinUser = await supabase.from('gitcoin_users').insert(gitcoinUser).select().throwOnError()
+    if(newGitCoinUser.error){
+        throw new Error(newGitCoinUser.error.message)
+    }
+    return newGitCoinUser.data[0]
+}
+export const getGitCoinUser = async (email:string) => {
+    const gitCoinUser = await supabase.from('gitcoin_users').select().eq('email',email)
+    if(gitCoinUser.error){
+        throw new Error(gitCoinUser.error.message)
+    }
+    return gitCoinUser.data[0];
+}
+
+export const ifGitcoinUserExists = async (email:string) => {
+    const gitCoinUser = await supabase.from('gitcoin_users').select().eq('email',email)
+    if(gitCoinUser.error){
+        throw new Error(gitCoinUser.error.message)
+    }
+    return gitCoinUser.data.length > 0;
+}
+
+export const updateGitCoinUser = async (email:string,updated_user: Database["public"]["Tables"]["gitcoin_users"]["Update"]) => {
+    const updatedGitCoinUser = await supabase.from('gitcoin_users').update(updated_user).eq('email',email).select()
+    if(updatedGitCoinUser.error){
+        throw new Error(updatedGitCoinUser.error.message)
+    }
+    return updatedGitCoinUser.data[0];
 }

@@ -4,6 +4,7 @@ import { WebhookEvent } from "@typescript-starter/core/types/paypal.types";
 import { Wallet } from "@typescript-starter/core/wallet";
 import { Table } from "@typescript-starter/core/table";
 import { sep } from "path";
+import { Supabase } from "@typescript-starter/core/supabase";
 
 
 
@@ -84,23 +85,61 @@ export const webhook = ApiHandler(async (_evt) => {
   };
 
 });
-
+function adjustArraySumProportionally(arr: number[], targetSum: number): number[] {
+  const currentSum = arr.reduce((acc, val) => acc + val, 0);
+  const ratio = targetSum / currentSum;
+  const adjustedArray = arr.map(val => Math.round((val * ratio) * 1000) / 1000);
+  return adjustedArray;
+}
 
 export const captureCheckout = ApiHandler(async (_evt) => {
   const {orderId,customId} : {orderId:string,customId:string} = useJsonBody()
   console.log({orderId,customId})
+  
   const res :any = await Paypal.captureOrder(orderId)
-  console.log({res})
+  console.log(res)
+  
   if(res.status === "COMPLETED"){
-    const rawTxData = await Table.getPaypalMetadata(customId)
-    console.log({rawTxData})
-    const hash = await Wallet.createTransaction({
-      data: rawTxData,
-      to: Wallet.getGitCoinMultiReserveFunderRoundAddress(8453),
-      value: "0",
-    },"gasless",8453)
+    
+    const userExist = await Supabase.ifGitcoinUserExists(res.payer.email_address)
+    const amount_after_fees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
+    if(!userExist){
+      const key = Wallet.generateEncryptedPrivateKey()
+      await Supabase.createGitCoinUser({
+        email:res.payer.email_address,
+        full_name:`${res.payer.name.given_name} ${res.payer.name.surname}`,
+        key:key,
+        paypal_id:res.payer.payer_id,
+        amount:amount_after_fees
+      })
+    }
+    const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
+
+
+    const donations = JSON.parse(groupedDonationsByRoundId) as  {
+      amount: string;
+      anchorAddress: string | undefined;
+      roundId: string;
+  }[]
+    const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amount_after_fees);
+    const newDonations = donations.map((d, i) => ({
+      ...d,
+      amount: newAmounts[i].toString(),
+    }));
+    
+    const gitCoinUser = await Supabase.getGitCoinUser(res.payer.email_address)
+
+    const hash = await Wallet.fundGitcoinRounds(gitCoinUser.key,newDonations)
     console.log({hash})
+
+    if(hash && userExist){
+      await Supabase.updateGitCoinUser(res.payer.email_address,{
+        amount:gitCoinUser.amount + amount_after_fees
+      })
+    }
+
   }
+ 
   return {
     statusCode: 200,
     body: JSON.stringify(res),
