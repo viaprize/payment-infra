@@ -73,16 +73,24 @@ const reserveFundCampaignAddress = {
   10:"0x690f51E4D54c131e4ed68A80b59Feb3487DeE898",
   8453:"0xEFB4611950c2bCa4e41c5992a0D404EA81e5D14D"
 } as const;
+const oldReserveFundCampaignAddress = {
+  10:"0x690f51E4D54c131e4ed68A80b59Feb3487DeE898",
+  8453:"0x8E8C7d84F08a0896D042BA80eebc0a76549D8da2"
+} as const;
 
 const usdcAddress = {
   10:"0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+  
   8453:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 } as const;
+
+
 
 const gitCoinMultiReserveFunderRoundAddress = {
   10: "0x15fa08599EB017F89c1712d0Fe76138899FdB9db",
   8453: "0x042623838e4893ab739a47b46D246140477e0aF1"
 }
+
 export const getUsdcAddress = (chainId: ChainId) => usdcAddress[chainId];
 
 export const Events = {
@@ -101,9 +109,6 @@ export type ChainId = 10 | 8453;
 
 export const ChainIdSchema = z.union([z.literal(10), z.literal(8453)]).default(10);
 
-const aesEncryption = new AESEncryption();
-
-aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
 
 export  function getAddress(type: WalletType) {
   return safeWallets[type];
@@ -209,12 +214,41 @@ export function getGitCoinMultiReserveFunderRoundAddress(chainId : ChainId){
 
 export async function reserveFundCampaign(contractAddress : string, amount: number,deadline : number,v : number, s: string,r: string, ethSignedMessage: string,chainId:ChainId){
   const reserveAddress = getReserveFundCampaignAddress(chainId)
+  const publicClient = createPublicClient({
+    transport: http(getRPC(chainId)),
+  })
   const data = encodeFunctionData({
     abi:CampaignFundABI,
     functionName:"fundUsingUsdc",
     args:[getAddress("reserve"),contractAddress as `0x${string}` ,BigInt(amount),BigInt(deadline),v,r as `0x${string}`, s as `0x${string}`,ethSignedMessage as `0x${string}`]
   }) 
+
   console.log({data})
+  const VERSION = await publicClient.readContract({
+    abi:[
+      {
+        inputs: [],
+        name: 'VERSION',
+        outputs: [
+          {
+            internalType: 'uint8',
+            name: '',
+            type: 'uint8',
+          },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+      }
+    ],
+    address:contractAddress as `0x${string}`,
+    functionName:"VERSION",
+  })
+
+  if(VERSION.toString() === "2"){
+    return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {
+      console.log("error",error)
+    })
+  }
   return createTransaction({data,to:reserveAddress,value:"0"},"reserve",chainId).catch((error) => {
     console.log("error",error)
   })
@@ -294,6 +328,9 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   roundId: string;
 }[]) {
   
+  const aesEncryption = new AESEncryption();
+
+  aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
   
   const key = aesEncryption.decrypt(encryptedKey)
   const account = privateKeyToAccount(key as `0x${string}`)
@@ -393,6 +430,15 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   if(!rsv.v){
     throw new Error("Invalid signature")
   }
+  console.log([data,
+    poolIds,
+    Object.values(amountArray),
+    Object.values(amountArray).reduce((acc, b) => acc + b),
+    usdcTT.address as Hex,
+    BigInt(deadline),
+    parseInt(rsv?.v.toString()),
+    rsv.r as Hex,
+    rsv.s as Hex])
   const txData = encodeFunctionData({
     abi: MULTI_ROUND_CHECKOUT,
     functionName:'allocateERC20Permit',
@@ -414,6 +460,11 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   })
   const transferHash = await erc20Transfer(usdcTT.address as `0x${string}`,account.address,BigInt(totalAmountInUSD),8453,"reserve")
   console.log({transferHash})
+
+  await publicClient.waitForTransactionReceipt({
+    hash:transferHash as `0x${string}`,
+    confirmations:1
+  });
   try{
     await publicClient.estimateGas({
       account:wallet.account,
@@ -429,6 +480,7 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     })
     console.log({transferGasHash})
   }
+  
   const gasEstimate = await publicClient.estimateGas({
     account:wallet.account,
     to:'0x7C24f3494CC958CF268a92b45D7e54310d161794',
@@ -457,6 +509,10 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
 
 export const generateEncryptedPrivateKey = () : string =>{
   const privateKey = generatePrivateKey();
+
+  const aesEncryption = new AESEncryption();
+
+  aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
   return aesEncryption.encrypt(privateKey)
 }
 

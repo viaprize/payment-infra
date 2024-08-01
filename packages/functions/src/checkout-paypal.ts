@@ -102,7 +102,10 @@ export const captureCheckout = ApiHandler(async (_evt) => {
   if(res.status === "COMPLETED"){
     
     const userExist = await Supabase.ifGitcoinUserExists(res.payer.email_address)
+    console.log(JSON.stringify(res))
     const amount_after_fees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
+
+    console.log({amount_after_fees})
     if(!userExist){
       const key = Wallet.generateEncryptedPrivateKey()
       await Supabase.createGitCoinUser({
@@ -137,12 +140,21 @@ export const captureCheckout = ApiHandler(async (_evt) => {
         amount:gitCoinUser.amount + amount_after_fees
       })
     }
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        ...res,
+        hash: hash
+      }),
+    };
 
   }
  
   return {
     statusCode: 200,
-    body: JSON.stringify(res),
+    body: JSON.stringify({
+      ...res,
+    }),
   };
 })
 // export const webhook = ApiHandler(async (_evt) => {
