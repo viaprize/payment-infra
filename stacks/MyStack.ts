@@ -20,6 +20,7 @@ export function API({ stack,app }: StackContext) {
   const PAYPAL_CLIENT_ID = new Config.Secret(stack, "PAYPAL_CLIENT_ID")
   const PAYPAL_SECRET_KEY = new Config.Secret(stack, "PAYPAL_SECRET_KEY")
   const AES_SECRET_KEY = new Config.Secret(stack,"AES_SECRET_KEY")
+  const ARBITRUM_RPC_URL = new Config.Secret(stack,"ARBITRUM_RPC_URL")
   // const TESTMODE_PAYPAL_WEBHOOK_SECRET = new Config.Secret(stack, "TESTMODE_PAYPAL_WEBHOOK_SECRET")
 
   const table = new Table(stack, "wallet-hashes", {
@@ -82,7 +83,8 @@ export function API({ stack,app }: StackContext) {
           TESTMODE_PAYPAL_SECRET_KEY,
           PAYPAL_CLIENT_ID,
           PAYPAL_SECRET_KEY,
-          AES_SECRET_KEY
+          AES_SECRET_KEY,
+          ARBITRUM_RPC_URL
         ],
         timeout:130
       },
@@ -112,12 +114,12 @@ export function API({ stack,app }: StackContext) {
 
   bus.subscribe("wallet.transaction", {
     handler: "packages/functions/src/events/transaction-created.handler",
-    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY]
+    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
   });
  
   bus.subscribe("checkout.refunded",{
     handler:"packages/functions/src/events/checkout-refunded.handler",
-    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,AES_SECRET_KEY]
+    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
   })
   stack.addOutputs({
     ApiEndpoint: api.url,

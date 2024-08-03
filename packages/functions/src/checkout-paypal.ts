@@ -12,8 +12,8 @@ import { Supabase } from "@typescript-starter/core/supabase";
 
 export const create = ApiHandler(async (_evt) => {
  
-  const {amount,metadata,customId} : {amount:string,metadata:string,customId:string} = useJsonBody()
-  console.log({amount,metadata,customId})
+  const {amount,metadata,customId,chainId} : {amount:string,metadata:string,customId:string,chainId:string} = useJsonBody()
+  
   const res = await Paypal.createCheckout(amount,customId)
   console.log({res})
   await Table.updatePaypalMetadata(customId,metadata)
@@ -95,9 +95,8 @@ function adjustArraySumProportionally(arr: number[], targetSum: number): number[
 export const captureCheckout = ApiHandler(async (_evt) => {
   const {orderId,customId} : {orderId:string,customId:string} = useJsonBody()
   console.log({orderId,customId})
-  
   const res :any = await Paypal.captureOrder(orderId)
-  console.log(res)
+  console.log(JSON.stringify(res))
   
   if(res.status === "COMPLETED"){
     

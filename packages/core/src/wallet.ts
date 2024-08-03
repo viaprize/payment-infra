@@ -9,9 +9,9 @@ import Safe from "@safe-global/protocol-kit";
 import {  createPublicClient, createWalletClient, encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, hexToSignature, http, parseAbiParameters, parseUnits,getAddress as verifyAddress, recoverAddress, recoverPublicKey, serializeSignature, parseEther } from "viem";
 import AESEncryption from "aes-encryption";
 import { getTokenByChainIdAndAddress, TToken } from "@gitcoin/gitcoin-chain-data";
-import {groupBy} from "lodash"
+import {chain, groupBy} from "lodash"
 import { MULTI_ROUND_CHECKOUT } from "./constants";
-import {base} from "viem/chains"
+import {arbitrum, base, optimism} from "viem/chains"
 
 type WalletType = "gasless" | "reserve";
 
@@ -69,26 +69,30 @@ const safeWallets = {
   reserve: "0xF7D1D901d15BBf60a8e896fbA7BBD4AB4C1021b3",
 } as const;
 
+
 const reserveFundCampaignAddress = {
   10:"0x690f51E4D54c131e4ed68A80b59Feb3487DeE898",
-  8453:"0xEFB4611950c2bCa4e41c5992a0D404EA81e5D14D"
+  8453:"0xEFB4611950c2bCa4e41c5992a0D404EA81e5D14D",
+  42161:"0x"
 } as const;
 const oldReserveFundCampaignAddress = {
   10:"0x690f51E4D54c131e4ed68A80b59Feb3487DeE898",
-  8453:"0x8E8C7d84F08a0896D042BA80eebc0a76549D8da2"
+  8453:"0x8E8C7d84F08a0896D042BA80eebc0a76549D8da2",
+  42161:"0x"
 } as const;
 
 const usdcAddress = {
   10:"0x0b2c639c533813f4aa9d7837caf62653d097ff85",
-  
-  8453:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+  8453:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  42161:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
 } as const;
 
 
 
 const gitCoinMultiReserveFunderRoundAddress = {
   10: "0x15fa08599EB017F89c1712d0Fe76138899FdB9db",
-  8453: "0x042623838e4893ab739a47b46D246140477e0aF1"
+  8453: "0x042623838e4893ab739a47b46D246140477e0aF1",
+  42161: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174"
 }
 
 export const getUsdcAddress = (chainId: ChainId) => usdcAddress[chainId];
@@ -100,12 +104,12 @@ export const Events = {
       address: z.string(),
       type: z.union([z.literal("gasless"), z.literal("reserve")]),
       hash: z.string(),
-      chainId: z.union([z.literal(10), z.literal(8453)]),
+      chainId: z.union([z.literal(10), z.literal(8453), z.literal(42161)]),
     })
   ),
 };
 
-export type ChainId = 10 | 8453;
+export type ChainId = 10 | 8453 | 42161;
 
 export const ChainIdSchema = z.union([z.literal(10), z.literal(8453)]).default(10);
 
@@ -138,6 +142,19 @@ export  function getRPC(chainId: ChainId){
       return Config.OP_RPC_URL
     case 8453:
       return Config.BASE_RPC_URL
+    case 42161:
+      return Config.ARBITRUM_RPC_URL
+  }
+}
+
+export function getChainObject(chain: ChainId){
+  switch(chain){
+    case 10:
+      return optimism;
+    case 8453:
+      return base;
+    case 42161:
+      return arbitrum;
   }
 }
 
@@ -259,7 +276,8 @@ const usdcSignType = ({
   value,
   nonce,
   deadline,
-  usdc
+  usdc,
+  chainId
 }: {
   owner: string;
   spender: string;
@@ -267,6 +285,7 @@ const usdcSignType = ({
   nonce: BigInt;
   deadline: BigInt;
   usdc: string;
+  chainId:number,
 }) => {
   return {
     message: {
@@ -302,7 +321,7 @@ const usdcSignType = ({
     },
     primaryType: 'Permit',
     domain: {
-      chainId: 8453,
+      chainId: chainId,
       verifyingContract: usdc,
       name: 'USD Coin',
       version: '2',
@@ -327,21 +346,28 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   anchorAddress: string | undefined;
   roundId: string;
 }[]) {
-  
+  console.log({donations})
+  const chainId : ChainId = 42161; 
   const aesEncryption = new AESEncryption();
+
+  const chainObject = getChainObject(chainId);
 
   aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
   
   const key = aesEncryption.decrypt(encryptedKey)
   const account = privateKeyToAccount(key as `0x${string}`)
+  console.log({account})
   const wallet = createWalletClient({
-    transport: http(Config.BASE_RPC_URL),
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
     account,
   });
   const publicClient = createPublicClient({
-    transport: http(Config.BASE_RPC_URL),
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
   });
   const totalAmountInUSD = donations.reduce((acc, d) => acc + parseFloat(d.amount), 0) * 1_000_000;
+  console.log({totalAmountInUSD})
   const nonce = await publicClient.readContract({
     abi: [
       {
@@ -364,23 +390,37 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
         type: 'function',
       },
     ] as const,
-    address: getUsdcAddress(8453),
+    address: getUsdcAddress(chainId),
     functionName: 'nonces',
     args: [wallet.account.address],
   });
 
   const deadline = Math.floor(Date.now() / 1000) + 100_000;
-  const usdc = getUsdcAddress(8453);
-  const usdcTT = getTokenByChainIdAndAddress(8453, usdc);
+  const usdc = getUsdcAddress(chainId);
+  console.log({usdc})
+  const usdcTT = getTokenByChainIdAndAddress(chainId, usdc);
+  console.log({usdcTT})
+  console.log({
+    deadline: BigInt(deadline),
+    nonce: nonce,
+    owner: wallet.account.address,
+    spender:gitCoinMultiReserveFunderRoundAddress[chainId],
+    usdc:getUsdcAddress(chainId),
+    value: BigInt(totalAmountInUSD),
+    chainId:chainId
+  })
  
   const signType = usdcSignType({
     deadline: BigInt(deadline),
     nonce: nonce,
     owner: wallet.account.address,
-    spender:"0x7C24f3494CC958CF268a92b45D7e54310d161794",
-    usdc:getUsdcAddress(8453),
+    spender:gitCoinMultiReserveFunderRoundAddress[chainId],
+    usdc:getUsdcAddress(chainId),
     value: BigInt(totalAmountInUSD),
+    chainId:chainId
   })
+
+  console.log({signType})
   const signature = await wallet.signTypedData(signType as any);
 
   const rsv = hexToSignature(signature);
@@ -454,11 +494,13 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
       rsv.s as Hex,
     ]
   })
+  console.log({txData})
   const gaslessWallet = createWalletClient({
-    transport: http(Config.BASE_RPC_URL),
+    transport: http(getRPC(chainId)),
     account: privateKeyToAccount(getSigner("gasless") as `0x${string}`),
+    chain: chainObject,
   })
-  const transferHash = await erc20Transfer(usdcTT.address as `0x${string}`,account.address,BigInt(totalAmountInUSD),8453,"reserve")
+  const transferHash = await erc20Transfer(usdcTT.address as `0x${string}`,account.address,BigInt(totalAmountInUSD),chainId,"reserve")
   console.log({transferHash})
 
   await publicClient.waitForTransactionReceipt({
@@ -468,22 +510,34 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   try{
     await publicClient.estimateGas({
       account:wallet.account,
-      to:'0x7C24f3494CC958CF268a92b45D7e54310d161794',
-      data:txData
+      to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
+    
+      data:txData,
+      
     })
   } catch(e){
     console.log("error",e)
     const transferGasHash = await gaslessWallet.sendTransaction({
       to:account.address,
-      chain:base,
-      value:parseEther("0.0003")
+      chain:chainObject ,
+      value:parseEther("0.0003"),
+  
+      
     })
     console.log({transferGasHash})
+
+    const transferGasReceipt = await publicClient.waitForTransactionReceipt({
+      hash:transferGasHash as `0x${string}`,
+      confirmations:1
+    });
+
+    console.log({transferGasReceipt}) 
+    
   }
   
   const gasEstimate = await publicClient.estimateGas({
     account:wallet.account,
-    to:'0x7C24f3494CC958CF268a92b45D7e54310d161794',
+    to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
     data:txData
   })
 
@@ -496,10 +550,10 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
 
   // console.log({transferGasHash})
   const hash = await wallet.sendTransaction({
-    to: '0x7C24f3494CC958CF268a92b45D7e54310d161794',
+    to: gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
     data: txData,
     value: BigInt(0),
-    chain: base,
+    chain: getChainObject(chainId),
   });
 
   console.log({hash})
