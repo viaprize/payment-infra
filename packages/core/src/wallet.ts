@@ -6,7 +6,7 @@ import type { MetaTransactionData} from '@safe-global/safe-core-sdk-types';
 import { privateKeyToAddress,generatePrivateKey, privateKeyToAccount} from 'viem/accounts'
 import { Config } from "sst/node/config";
 import Safe from "@safe-global/protocol-kit";
-import {  createPublicClient, createWalletClient, encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, hexToSignature, http, parseAbiParameters, parseUnits,getAddress as verifyAddress, recoverAddress, recoverPublicKey, serializeSignature, parseEther } from "viem";
+import {  createPublicClient, createWalletClient, encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, hexToSignature, http, parseAbiParameters, parseUnits,getAddress as verifyAddress, recoverAddress, recoverPublicKey, serializeSignature, parseEther, hashTypedData } from "viem";
 import AESEncryption from "aes-encryption";
 import { getTokenByChainIdAndAddress, TToken } from "@gitcoin/gitcoin-chain-data";
 import {chain, groupBy} from "lodash"
@@ -16,7 +16,66 @@ import {arbitrum, base, optimism} from "viem/chains"
 type WalletType = "gasless" | "reserve";
 
 
+export const signPermitUsdc = async (value:number,spender:string,chainId:ChainId,key:string,deadline:number)=>{
+   
+  const chainObject = getChainObject(chainId)
+  const publicClient = createPublicClient({
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
+  });
+  const account = getAccountFromEncryptedPrivateKey(key)
+  
+  const nonce = await publicClient.readContract({
+    abi: [
+      {
+        constant: true,
+        inputs: [
+          {
+            name: 'owner',
+            type: 'address',
+          },
+        ],
+        name: 'nonces',
+        outputs: [
+          {
+            name: '',
+            type: 'uint256',
+          },
+        ],
+        payable: false,
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ] as const,
+    address: getUsdcAddress(chainId),
+    functionName: 'nonces',
+    args: [account.address],
+  });
 
+  const signData = {
+    deadline: BigInt(deadline),
+    nonce: nonce,
+    owner: account.address,
+    spender: spender,
+    usdc:getUsdcAddress(chainId),
+    value: BigInt(value),
+    chainId:chainId
+  }
+  const signType = usdcSignType(signData)
+  const hash = hashTypedData(signType as any)
+
+  console.log({signType})
+  const signature = await account.signTypedData(signType as any);
+
+  const rsv = hexToSignature(signature);
+
+  return {
+    r: rsv.r,
+    s: rsv.s,
+    v: rsv.v,
+    hash:hash
+  }
+}
 export const CampaignFundABI =  [
 	{
     "constant": false,
@@ -270,7 +329,7 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
     console.log("error",error)
   })
 }
-const usdcSignType = ({
+export const usdcSignType = ({
   owner,
   spender,
   value,
@@ -569,6 +628,28 @@ export const generateEncryptedPrivateKey = () : string =>{
   aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
   return aesEncryption.encrypt(privateKey)
 }
+export const generateAddressFromEncryptedPrivateKey = (key:string) =>{
+  const aesEncryption = new AESEncryption();
+
+
+  aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
+  
+  const pk = aesEncryption.decrypt(key)
+  const account = privateKeyToAccount(pk as `0x${string}`)
+  return account.address
+}
+
+export const getAccountFromEncryptedPrivateKey = (key:string)=>{
+  const aesEncryption = new AESEncryption();
+
+
+  aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
+  
+  const pk = aesEncryption.decrypt(key)
+  const account = privateKeyToAccount(pk as `0x${string}`)
+  return account
+}
+
 
 export const Utils = {
   recoverAddress: recoverAddress,

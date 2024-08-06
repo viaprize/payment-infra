@@ -95,3 +95,28 @@ export const updateGitCoinUser = async (email:string,updated_user: Database["pub
     }
     return updatedGitCoinUser.data[0];
 }
+
+export const createNonLoginUser = async (nonLoginUser: Database["public"]["Tables"]["non_login_users"]["Insert"]) => {
+    const newLoginUser = await supabase.from('non_login_users').insert(nonLoginUser).select().throwOnError()
+    if(newLoginUser.error){
+        throw new Error(newLoginUser.error.message)
+    }
+    return newLoginUser.data[0]
+}
+
+export const getNonLoginUser = async (email:string) =>{
+    const nonLoginUser = await supabase.from('non_login_users').select().eq('email',email)
+    if(nonLoginUser.error){
+        throw new Error(nonLoginUser.error.message)
+    }
+    return nonLoginUser.data[0];
+}
+
+
+export const ifNonLoginUserExists = async (email:string) => {
+    const nonLoginUser = await supabase.from('non_login_users').select().eq('email',email)
+    if(nonLoginUser.error){
+        throw new Error(nonLoginUser.error.message)
+    }
+    return nonLoginUser.data.length > 0;
+}

@@ -3,12 +3,16 @@ import { CheckoutMetadataType,  Stripe} from "@typescript-starter/core/payment/s
 import * as Wallet from "@typescript-starter/core/wallet";
 import {Supabase} from "@typescript-starter/core/supabase"
 import { Config } from "sst/node/config";
+import { Database } from "@typescript-starter/core/types/database.types";
 
 
 
 type CheckoutData = {checkoutMetadata:CheckoutMetadataType,title:string,imageUrl:string,backendId:string,amount:number,successUrl:string,cancelUrl:string} 
 export const create = ApiHandler(async (_evt) => {
   const {checkoutMetadata,title,imageUrl,backendId,successUrl,cancelUrl} : CheckoutData = useJsonBody()
+  if(checkoutMetadata.payWihtoutLogin === undefined) {
+    checkoutMetadata.payWihtoutLogin = 0;
+  } 
   const checkoutUrl = await Stripe.createCheckout(checkoutMetadata,title,imageUrl,successUrl,cancelUrl)
   return {
     statusCode: 200,
@@ -86,7 +90,7 @@ export const webhook = ApiHandler(async (_evt) => {
             }
             
            
-            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
+            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,payWihtoutLogin} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
     
             if(!chainId ){
                 chainId = 10
@@ -94,7 +98,39 @@ export const webhook = ApiHandler(async (_evt) => {
             
             chainId = parseInt(chainId.toString())
             console.log(`🔔  Checkout session completed: ${checkoutSessionCompleted.id}`);
-            const hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId);
+            let hash = undefined;
+
+            if(payWihtoutLogin == 1){
+                let nonLoginUser : Database["public"]["Tables"]["non_login_users"]["Row"];
+                const email = checkoutSessionCompleted.customer_email ?? "default@viaprize.org"
+                const isNewNonLoginUser =await Supabase.ifNonLoginUserExists(email);
+                if(isNewNonLoginUser){
+                    nonLoginUser = await Supabase.getNonLoginUser(email)
+                }
+                else{
+                    const key = Wallet.generateEncryptedPrivateKey();
+                    const walletAddress = Wallet.generateAddressFromEncryptedPrivateKey(key);
+                    nonLoginUser = await Supabase.createNonLoginUser({
+                        email,
+                        key,
+                        wallet_address:walletAddress,
+
+                    })
+                }
+                
+                
+                deadline = Math.floor(Date.now() / 1000) + 100_000;
+                const loginUserRSV =await Wallet.signPermitUsdc(amount,contractAddress,chainId as Wallet.ChainId,nonLoginUser.key,deadline)
+                r = loginUserRSV.r;
+                s = loginUserRSV.s;
+                v = parseInt(loginUserRSV.v?.toString() ?? '0');
+                ethSignedMessage = loginUserRSV.hash;
+                hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId);
+            }
+           
+            hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId);
+            
+            
             console.log({hash})
 
             if(hash){

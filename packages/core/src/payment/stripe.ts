@@ -17,6 +17,7 @@ export type  CheckoutMetadataType = {
     amount: number;
     ethSignedMessage: string;
     chainId: number;
+    payWihtoutLogin: number;
 }
 
 
@@ -33,6 +34,7 @@ export const Events = {
         amount: z.number(),
         ethSignedMessage: z.string(),
         chainId: z.number(),
+        payWihtoutLogin: z.number()
       })
     ),
     RefundTransaction: event(
