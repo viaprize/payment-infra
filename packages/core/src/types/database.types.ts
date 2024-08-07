@@ -87,30 +87,33 @@ export type Database = {
       gitcoin_users: {
         Row: {
           amount: number
+          chain_id: string
           created_at: string
           email: string
           full_name: string
           id: number
-          key: string
           paypal_id: string
+          round_id: string
         }
         Insert: {
           amount?: number
+          chain_id: string
           created_at?: string
           email: string
           full_name: string
           id?: number
-          key: string
           paypal_id: string
+          round_id: string
         }
         Update: {
           amount?: number
+          chain_id?: string
           created_at?: string
           email?: string
           full_name?: string
           id?: number
-          key?: string
           paypal_id?: string
+          round_id?: string
         }
         Relationships: []
       }

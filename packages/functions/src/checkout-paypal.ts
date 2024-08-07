@@ -100,19 +100,18 @@ export const captureCheckout = ApiHandler(async (_evt) => {
   
   if(res.status === "COMPLETED"){
     
-    const userExist = await Supabase.ifGitcoinUserExists(res.payer.email_address)
+    const userExist = await Supabase.ifNonLoginUserExists(res.payer.email_address)
     console.log(JSON.stringify(res))
     const amountAfterFees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
 
     console.log({amountAfterFees})
     if(!userExist){
       const key = Wallet.generateEncryptedPrivateKey()
-      await Supabase.createGitCoinUser({
+      const account = Wallet.getAccountFromEncryptedPrivateKey(key);
+      await Supabase.createNonLoginUser({
         email:res.payer.email_address,
-        full_name:`${res.payer.name.given_name} ${res.payer.name.surname}`,
         key:key,
-        paypal_id:res.payer.payer_id,
-        amount:amountAfterFees
+        wallet_address:account.address,
       })
     }
     const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
@@ -131,14 +130,20 @@ export const captureCheckout = ApiHandler(async (_evt) => {
       amount: newAmounts[i].toString(),
     }));
     
-    const gitCoinUser = await Supabase.getGitCoinUser(res.payer.email_address)
+    const nonLoginUser = await Supabase.getNonLoginUser(res.payer.email_address)
 
-    const hash = await Wallet.fundGitcoinRounds(gitCoinUser.key,newDonations)
+    const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
     console.log({hash})
 
     if(hash && userExist){
-      await Supabase.updateGitCoinUser(res.payer.email_address,{
-        amount:gitCoinUser.amount + amountAfterPlatfromFees
+      
+      await Supabase.createGitCoinUser({
+        chain_id: "42161",
+        email: nonLoginUser.email,
+        full_name:`${res.payer.name.given_name} ${res.payer.name.surname}`,
+        paypal_id:res.payer.payer_id,
+        round_id: donations[0].roundId,
+        amount: amountAfterPlatfromFees,
       })
     }
     return {
