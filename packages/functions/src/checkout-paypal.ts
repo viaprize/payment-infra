@@ -9,7 +9,7 @@ import { Supabase } from "@typescript-starter/core/supabase";
 
 
 
-
+const PERCENTAGE = 5;
 export const create = ApiHandler(async (_evt) => {
  
   const {amount,metadata,customId,chainId} : {amount:string,metadata:string,customId:string,chainId:string} = useJsonBody()
@@ -102,9 +102,9 @@ export const captureCheckout = ApiHandler(async (_evt) => {
     
     const userExist = await Supabase.ifGitcoinUserExists(res.payer.email_address)
     console.log(JSON.stringify(res))
-    const amount_after_fees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
+    const amountAfterFees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
 
-    console.log({amount_after_fees})
+    console.log({amountAfterFees})
     if(!userExist){
       const key = Wallet.generateEncryptedPrivateKey()
       await Supabase.createGitCoinUser({
@@ -112,7 +112,7 @@ export const captureCheckout = ApiHandler(async (_evt) => {
         full_name:`${res.payer.name.given_name} ${res.payer.name.surname}`,
         key:key,
         paypal_id:res.payer.payer_id,
-        amount:amount_after_fees
+        amount:amountAfterFees
       })
     }
     const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
@@ -123,7 +123,9 @@ export const captureCheckout = ApiHandler(async (_evt) => {
       anchorAddress: string | undefined;
       roundId: string;
   }[]
-    const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amount_after_fees);
+
+    const amountAfterPlatfromFees  = (amountAfterFees * ((PERCENTAGE+100) / 100))
+    const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterPlatfromFees);
     const newDonations = donations.map((d, i) => ({
       ...d,
       amount: newAmounts[i].toString(),
@@ -136,7 +138,7 @@ export const captureCheckout = ApiHandler(async (_evt) => {
 
     if(hash && userExist){
       await Supabase.updateGitCoinUser(res.payer.email_address,{
-        amount:gitCoinUser.amount + amount_after_fees
+        amount:gitCoinUser.amount + amountAfterPlatfromFees
       })
     }
     return {

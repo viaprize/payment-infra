@@ -10,8 +10,8 @@ import { Database } from "@typescript-starter/core/types/database.types";
 type CheckoutData = {checkoutMetadata:CheckoutMetadataType,title:string,imageUrl:string,backendId:string,amount:number,successUrl:string,cancelUrl:string} 
 export const create = ApiHandler(async (_evt) => {
   const {checkoutMetadata,title,imageUrl,backendId,successUrl,cancelUrl} : CheckoutData = useJsonBody()
-  if(checkoutMetadata.payWihtoutLogin === undefined) {
-    checkoutMetadata.payWihtoutLogin = 0;
+  if(checkoutMetadata.payWihtoutLogin.toString() === undefined) {
+    checkoutMetadata.payWihtoutLogin = '0';
   } 
   const checkoutUrl = await Stripe.createCheckout(checkoutMetadata,title,imageUrl,successUrl,cancelUrl)
   return {
@@ -100,7 +100,7 @@ export const webhook = ApiHandler(async (_evt) => {
             console.log(`🔔  Checkout session completed: ${checkoutSessionCompleted.id}`);
             let hash = undefined;
 
-            if(payWihtoutLogin == 1){
+            if(payWihtoutLogin ==='1'){
                 let nonLoginUser : Database["public"]["Tables"]["non_login_users"]["Row"];
                 const email = checkoutSessionCompleted.customer_email ?? "default@viaprize.org"
                 const isNewNonLoginUser =await Supabase.ifNonLoginUserExists(email);
