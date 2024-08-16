@@ -23,6 +23,57 @@ export const create = ApiHandler(async (_evt) => {
   };
 }); 
 
+// export const triggerManuelCapture = ApiHandler(async (_evt) => {
+//   const {customId,paypalId,email,full_name} : {customId:string,paypalId:string,email:string,full_name:string} = useJsonBody()
+//   console.log({customId,paypalId,email,full_name})
+//   const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
+//   const donations = JSON.parse(groupedDonationsByRoundId) as  {
+//     amount: string;
+//     anchorAddress: string | undefined;
+//     roundId: string;
+//   }[]
+//   const totalAmount = donations.reduce((acc, val) => acc + parseFloat(val.amount), 0);
+//   const amountAfterFees = totalAmount * ((100-PERCENTAGE) / 100);
+//   const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterFees);
+//   const newDonations = donations.map((d, i) => ({
+//     ...d,
+//     amount: newAmounts[i].toString(),
+//   }));
+//   const userExist = await Supabase.ifNonLoginUserExists(email)
+//   if(!userExist){
+//     const key = Wallet.generateEncryptedPrivateKey()
+//     const account = Wallet.getAccountFromEncryptedPrivateKey(key);
+//     await Supabase.createNonLoginUser({
+//       email:email,
+//       key:key,
+//       wallet_address:account.address,
+//     })
+//   }
+//   const nonLoginUser = await Supabase.getNonLoginUser(email)
+
+//   const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
+
+//   if(hash && userExist){
+      
+//     await Supabase.createGitCoinUser({
+//       chain_id: "42161",
+//       email: nonLoginUser.email,
+//       full_name:full_name,
+//       paypal_id:paypalId,
+//       round_id: donations[0].roundId,
+//       amount: amountAfterFees,
+//     })
+//   }
+
+//   return {
+//     statusCode: 200,
+//     body: JSON.stringify({
+//       hash: hash
+//     }),
+//   };
+
+// })
+
 export const webhook = ApiHandler(async (_evt) => {
   const transmissionId = useHeader('paypal-transmission-id')
   const timeStamp = useHeader('paypal-transmission-time')
@@ -102,8 +153,13 @@ export const captureCheckout = ApiHandler(async (_evt) => {
     
     const userExist = await Supabase.ifNonLoginUserExists(res.payer.email_address)
     console.log(JSON.stringify(res))
-    const amountAfterFees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
-
+    let amountAfterFees;
+    if(res.purchase_units[0].payments.captures[0].status === "PENDING"){
+      amountAfterFees = parseFloat(res.purchase_units[0].payments.captures[0].amount.value);
+    }
+    else{
+      amountAfterFees = parseFloat(res.purchase_units[0].payments.captures[0].seller_receivable_breakdown.net_amount.value);
+    }
     console.log({amountAfterFees})
     if(!userExist){
       const key = Wallet.generateEncryptedPrivateKey()
@@ -123,7 +179,9 @@ export const captureCheckout = ApiHandler(async (_evt) => {
       roundId: string;
   }[]
 
-    const amountAfterPlatfromFees  = (amountAfterFees * ((PERCENTAGE+100) / 100))
+  
+
+    const amountAfterPlatfromFees  = (amountAfterFees * ((100-PERCENTAGE) / 100))
     const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterPlatfromFees);
     const newDonations = donations.map((d, i) => ({
       ...d,
