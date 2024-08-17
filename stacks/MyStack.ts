@@ -107,6 +107,11 @@ export function API({ stack,app }: StackContext) {
       "POST /checkout/paypal/webhook": "packages/functions/src/checkout-paypal.webhook",
       "POST /checkout/paypal": "packages/functions/src/checkout-paypal.create",
       "POST /checkout/paypal/capture": "packages/functions/src/checkout-paypal.captureCheckout",
+
+      "POST /donations/bitcoin/webhook": "packages/functions/src/donations.bitcoinWebhook",
+      "POST /donations/solana/webhook": "packages/functions/src/donations.solanaWebhook",
+      "POST /donations/ethereum/webhook": "packages/functions/src/donations.ethereumWebhook",
+
       // "POST /checkout/paypal/capture/manuel": "packages/functions/src/checkout-paypal.triggerManuelCapture"
       // "POST /checkout/test": "packages/functions/src/checkout.createTestCheckout",
       // "POST /checkout/test/webhook": "packages/functions/src/checkout.webhookTest",
