@@ -5,6 +5,10 @@ import {Table} from "@typescript-starter/core/table"
 export const handler = EventHandler(Wallet.Events.Created, async (evt) => {
   await Table.updateLatestHash(evt.properties.hash)
 
+  console.log({evt})
+
+  console.log(JSON.stringify(evt))
+
   
   
   if(evt.properties.type === "reserve"){
@@ -17,7 +21,7 @@ export const handler = EventHandler(Wallet.Events.Created, async (evt) => {
 
     
     if(amount_usdc < 100){
-      Telegram.sendMessage({
+      await Telegram.sendMessage({
         chatId: "-948252043",
         text: `
 Low reserve balance on chain ${evt.properties.chainId}, 
@@ -36,7 +40,7 @@ send to ${Wallet.getAddress(evt.properties.type)} to top up reserve wallet
     const amount_eth = parseFloat(amount_eth_unformated.toString()) / 1_000_000_000_000_000_000;
 
     if(amount_eth <= 0.0002){
-      Telegram.sendMessage({
+      await Telegram.sendMessage({
         chatId: "-948252043",
         text: `
 Low reserve balance on chain ${evt.properties.chainId}, 
@@ -55,12 +59,13 @@ send to ${Wallet.getSignerAddress(evt.properties.type)} to top up
       evt.properties.chainId,
       true
     )
-
+    console.log({amount_eth_unformated},"JSKjflsdj")
    
     const amount_eth = parseFloat(amount_eth_unformated.toString()) / 1_000_000_000_000_000_000;
     console.log({amount_eth},"JSKjflsdj")
     if(amount_eth <= 0.02){
-      Telegram.sendMessage({
+      console.log("hiiii in amount low")
+      await Telegram.sendMessage({
         chatId: "-948252043",
         text: `
 Low reserve balance on chain ${evt.properties.chainId},
@@ -69,6 +74,7 @@ send to ${Wallet.getSignerAddress(evt.properties.type)} to top up gasless wallet
         `
       })
     }
+    console.log("hiiiiii this is it")
   }
 
   

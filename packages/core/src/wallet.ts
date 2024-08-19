@@ -580,15 +580,20 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
       to:account.address,
       chain:chainObject ,
       value:parseEther("0.0003"),
-  
-      
     })
+    
     console.log({transferGasHash})
 
     const transferGasReceipt = await publicClient.waitForTransactionReceipt({
       hash:transferGasHash as `0x${string}`,
       confirmations:1
     });
+    await Events.Created.publish({
+      address: gaslessWallet.account.address,
+      chainId:chainId,
+      hash:transferGasHash,
+      type:"gasless"
+    })
 
     console.log({transferGasReceipt}) 
     

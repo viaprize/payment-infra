@@ -23,56 +23,56 @@ export const create = ApiHandler(async (_evt) => {
   };
 }); 
 
-// export const triggerManuelCapture = ApiHandler(async (_evt) => {
-//   const {customId,paypalId,email,full_name} : {customId:string,paypalId:string,email:string,full_name:string} = useJsonBody()
-//   console.log({customId,paypalId,email,full_name})
-//   const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
-//   const donations = JSON.parse(groupedDonationsByRoundId) as  {
-//     amount: string;
-//     anchorAddress: string | undefined;
-//     roundId: string;
-//   }[]
-//   const totalAmount = donations.reduce((acc, val) => acc + parseFloat(val.amount), 0);
-//   const amountAfterFees = totalAmount * ((100-PERCENTAGE) / 100);
-//   const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterFees);
-//   const newDonations = donations.map((d, i) => ({
-//     ...d,
-//     amount: newAmounts[i].toString(),
-//   }));
-//   const userExist = await Supabase.ifNonLoginUserExists(email)
-//   if(!userExist){
-//     const key = Wallet.generateEncryptedPrivateKey()
-//     const account = Wallet.getAccountFromEncryptedPrivateKey(key);
-//     await Supabase.createNonLoginUser({
-//       email:email,
-//       key:key,
-//       wallet_address:account.address,
-//     })
-//   }
-//   const nonLoginUser = await Supabase.getNonLoginUser(email)
+export const triggerManuelCapture = ApiHandler(async (_evt) => {
+  const {customId,paypalId,email,full_name} : {customId:string,paypalId:string,email:string,full_name:string} = useJsonBody()
+  console.log({customId,paypalId,email,full_name})
+  const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
+  const donations = JSON.parse(groupedDonationsByRoundId) as  {
+    amount: string;
+    anchorAddress: string | undefined;
+    roundId: string;
+  }[]
+  const totalAmount = donations.reduce((acc, val) => acc + parseFloat(val.amount), 0);
+  const amountAfterFees = totalAmount * ((100-PERCENTAGE) / 100);
+  const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterFees);
+  const newDonations = donations.map((d, i) => ({
+    ...d,
+    amount: newAmounts[i].toString(),
+  }));
+  const userExist = await Supabase.ifNonLoginUserExists(email)
+  if(!userExist){
+    const key = Wallet.generateEncryptedPrivateKey()
+    const account = Wallet.getAccountFromEncryptedPrivateKey(key);
+    await Supabase.createNonLoginUser({
+      email:email,
+      key:key,
+      wallet_address:account.address,
+    })
+  }
+  const nonLoginUser = await Supabase.getNonLoginUser(email)
 
-//   const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
+  const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
 
-//   if(hash && userExist){
+  if(hash && userExist){
       
-//     await Supabase.createGitCoinUser({
-//       chain_id: "42161",
-//       email: nonLoginUser.email,
-//       full_name:full_name,
-//       paypal_id:paypalId,
-//       round_id: donations[0].roundId,
-//       amount: amountAfterFees,
-//     })
-//   }
+    await Supabase.createGitCoinUser({
+      chain_id: "42161",
+      email: nonLoginUser.email,
+      full_name:full_name,
+      paypal_id:paypalId,
+      round_id: donations[0].roundId,
+      amount: amountAfterFees,
+    })
+  }
 
-//   return {
-//     statusCode: 200,
-//     body: JSON.stringify({
-//       hash: hash
-//     }),
-//   };
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      hash: hash
+    }),
+  };
 
-// })
+})
 
 export const webhook = ApiHandler(async (_evt) => {
   const transmissionId = useHeader('paypal-transmission-id')

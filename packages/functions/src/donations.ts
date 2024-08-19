@@ -26,7 +26,7 @@ export const bitcoinWebhook = ApiHandler(async (_evt) => {
     }
 
     if(tranaction.transactions[0].vout.map((vout) => vout.addresses[0]).includes(BITCOIN_ADDRESS)){
-        Telegram.sendMessage({
+        await Telegram.sendMessage({
             chatId: "-948252043",
             text: `
             New donation of ${parseInt(tranaction.transactions[0].value) / 100_000_000} BTC
@@ -34,7 +34,7 @@ export const bitcoinWebhook = ApiHandler(async (_evt) => {
         })
     }
     else{
-        Telegram.sendMessage({
+        await Telegram.sendMessage({
             chatId: "-948252043",
             text: `
             Btc from viaprize wallet spent about  ${parseInt(tranaction.transactions[0].value) / 100_000_000} BTC
@@ -59,7 +59,7 @@ export const ethereumWebhook = ApiHandler(async (_evt) => {
     const webhook : EthereumWebhookEvent = useJsonBody()
     const network = webhook.event.network
     if(webhook.event.activity[0].toAddress.toLowerCase() === ETHEREUM_ADDRESS.toLowerCase()){
-        Telegram.sendMessage({
+        await Telegram.sendMessage({
             chatId: "-948252043",
             text: `
             New donation of ${webhook.event.activity[0].value} ${webhook.event.activity[0].asset} on ${network}
@@ -67,7 +67,7 @@ export const ethereumWebhook = ApiHandler(async (_evt) => {
         })
     }
     if (webhook.event.activity[0].fromAddress.toLowerCase() === ETHEREUM_ADDRESS.toLowerCase()){
-        Telegram.sendMessage({
+        await Telegram.sendMessage({
             chatId: "-948252043",
             text: `
             Withdrawal of ${webhook.event.activity[0].value} ${webhook.event.activity[0].asset} on ${network}
