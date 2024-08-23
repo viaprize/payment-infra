@@ -425,7 +425,7 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     transport: http(getRPC(chainId)),
     chain: chainObject,
   });
-  const totalAmountInUSD = donations.reduce((acc, d) => acc + parseFloat(d.amount), 0) * 1_000_000;
+  const totalAmountInUSD = (donations.reduce((acc, d) => acc + parseFloat(d.amount), 0) * 1_000_000).toFixed(2);
   console.log({totalAmountInUSD})
   const nonce = await publicClient.readContract({
     abi: [
@@ -579,7 +579,7 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     const transferGasHash = await gaslessWallet.sendTransaction({
       to:account.address,
       chain:chainObject ,
-      value:parseEther("0.0003"),
+      value:parseEther("0.0001"),
     })
     
     console.log({transferGasHash})

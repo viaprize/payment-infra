@@ -111,6 +111,9 @@ export function API({ stack,app }: StackContext) {
       "POST /donations/bitcoin/webhook": "packages/functions/src/donations.bitcoinWebhook",
       "POST /donations/solana/webhook": "packages/functions/src/donations.solanaWebhook",
       "POST /donations/ethereum/webhook": "packages/functions/src/donations.ethereumWebhook",
+      "POST /donations/optimism/webhook": "packages/functions/src/donations.optimismWebhook",
+      "POST /donations/arbitrum/webhook": "packages/functions/src/donations.arbitrumWebhook",
+      "POST /donations/polygon/webhook": "packages/functions/src/donations.polygonWebhook"
 
       // "POST /checkout/paypal/capture/manuel": "packages/functions/src/checkout-paypal.triggerManuelCapture"
       // "POST /checkout/test": "packages/functions/src/checkout.createTestCheckout",
@@ -120,6 +123,11 @@ export function API({ stack,app }: StackContext) {
 
   bus.subscribe("wallet.transaction", {
     handler: "packages/functions/src/events/transaction-created.handler",
+    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
+  });
+
+  bus.subscribe("donation.received", {
+    handler: "packages/functions/src/events/donation-received.handler",
     bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
   });
  

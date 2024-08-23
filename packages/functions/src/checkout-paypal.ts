@@ -11,16 +11,21 @@ import { Supabase } from "@typescript-starter/core/supabase";
 
 const PERCENTAGE = 5;
 export const create = ApiHandler(async (_evt) => {
- 
-  const {amount,metadata,customId,chainId} : {amount:string,metadata:string,customId:string,chainId:string} = useJsonBody()
-  
-  const res = await Paypal.createCheckout(amount,customId)
-  console.log({res})
-  await Table.updatePaypalMetadata(customId,metadata)
   return {
-    statusCode: 200,
-    body: JSON.stringify(res),
-  };
+    statusCode:402,
+    body: JSON.stringify({
+      message:"Payment Not accepting"
+    }),
+  }
+  // const {amount,metadata,customId,chainId} : {amount:string,metadata:string,customId:string,chainId:string} = useJsonBody()
+  
+  // const res = await Paypal.createCheckout(amount,customId)
+  // console.log({res})
+  // await Table.updatePaypalMetadata(customId,metadata)
+  // return {
+  //   statusCode: 200,
+  //   body: JSON.stringify(res),
+  // };
 }); 
 
 export const triggerManuelCapture = ApiHandler(async (_evt) => {
@@ -53,7 +58,7 @@ export const triggerManuelCapture = ApiHandler(async (_evt) => {
 
   const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
 
-  if(hash && userExist){
+  if(hash){
       
     await Supabase.createGitCoinUser({
       chain_id: "42161",
@@ -63,6 +68,8 @@ export const triggerManuelCapture = ApiHandler(async (_evt) => {
       round_id: donations[0].roundId,
       amount: amountAfterFees,
     })
+
+    console.log("Donation creartedddds")
   }
 
   return {
