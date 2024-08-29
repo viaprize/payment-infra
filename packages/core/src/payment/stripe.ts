@@ -18,6 +18,7 @@ export type  CheckoutMetadataType = {
     ethSignedMessage: string;
     chainId: number;
     payWihtoutLogin: string;
+    type: string;
 }
 
 

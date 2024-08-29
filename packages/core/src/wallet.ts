@@ -288,7 +288,7 @@ export function getGitCoinMultiReserveFunderRoundAddress(chainId : ChainId){
   return gitCoinMultiReserveFunderRoundAddress[chainId]
 }
 
-export async function reserveFundCampaign(contractAddress : string, amount: number,deadline : number,v : number, s: string,r: string, ethSignedMessage: string,chainId:ChainId){
+export async function reserveFundCampaign(contractAddress : string, amount: number,deadline : number,v : number, s: string,r: string, ethSignedMessage: string,chainId:ChainId,contractType: 'prize' | 'portal' ){
   const reserveAddress = getReserveFundCampaignAddress(chainId)
   const publicClient = createPublicClient({
     transport: http(getRPC(chainId)),
@@ -300,27 +300,38 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
   }) 
 
   console.log({data})
-  const VERSION = await publicClient.readContract({
-    abi:[
-      {
-        inputs: [],
-        name: 'VERSION',
-        outputs: [
-          {
-            internalType: 'uint8',
-            name: '',
-            type: 'uint8',
-          },
-        ],
-        stateMutability: 'view',
-        type: 'function',
-      }
-    ],
-    address:contractAddress as `0x${string}`,
-    functionName:"VERSION",
-  })
 
-  if(VERSION.toString() === "2"){
+  if(contractType == "prize"){
+    const VERSION = await publicClient.readContract({
+      abi:[
+        {
+          inputs: [],
+          name: 'VERSION',
+          outputs: [
+            {
+              internalType: 'uint8',
+              name: '',
+              type: 'uint8',
+            },
+          ],
+          stateMutability: 'view',
+          type: 'function',
+        }
+      ],
+      address:contractAddress as `0x${string}`,
+      functionName:"VERSION",
+    })
+
+    if(VERSION.toString() === "2"){
+      return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {
+        console.log("error",error)
+      })
+    }
+  }
+
+  
+
+  if(contractType == "portal"){
     return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {
       console.log("error",error)
     })

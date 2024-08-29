@@ -90,10 +90,14 @@ export const webhook = ApiHandler(async (_evt) => {
             }
             
            
-            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,payWihtoutLogin} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
+            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,payWihtoutLogin,type} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
     
             if(!chainId ){
                 chainId = 10
+            }
+
+            if(!type){
+                type = "portal"
             }
             
             chainId = parseInt(chainId.toString())
@@ -125,10 +129,10 @@ export const webhook = ApiHandler(async (_evt) => {
                 s = loginUserRSV.s;
                 v = parseInt(loginUserRSV.v?.toString() ?? '0');
                 ethSignedMessage = loginUserRSV.hash;
-                hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId);
+                hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId,type as "prize" | "portal");
             }
            
-            hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId);
+            hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId,type as "prize" | "portal");
             
             
             console.log({hash})
@@ -221,7 +225,7 @@ export const webhookTest = ApiHandler(async (_evt) => {
                 };
             }
     
-            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
+            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,type} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
     
             if(!chainId ){
                 chainId = 10
@@ -229,7 +233,7 @@ export const webhookTest = ApiHandler(async (_evt) => {
             
             chainId = parseInt(chainId.toString())
             console.log(`🔔  Checkout session completed: ${checkoutSessionCompleted.id}`);
-            const hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId);
+            const hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId,type as "prize" | "portal");
             console.log({hash})
             return {
                 statusCode: 200,
