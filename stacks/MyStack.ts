@@ -99,6 +99,8 @@ export function API({ stack,app }: StackContext) {
       "GET /reserve/signer": "packages/functions/src/reserve.getSigner", 
       "GET /reserve/balance": "packages/functions/src/reserve.getBalance",
       "GET /reserve/hash": "packages/functions/src/reserve.getHash",
+      "GET /wallet/generate": "packages/functions/src/wallet.generate",
+      
       
       "POST /reserve": "packages/functions/src/reserve.create",
       "POST /checkout": "packages/functions/src/checkout.create",
