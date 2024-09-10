@@ -130,12 +130,12 @@ const safeWallets = {
 
 
 const reserveFundCampaignAddress = {
-  10:"0x690f51E4D54c131e4ed68A80b59Feb3487DeE898",
+  10:"0xEBD93fffdAE479808080550f3F1701d018eEB832",
   8453:"0xEFB4611950c2bCa4e41c5992a0D404EA81e5D14D",
   42161:"0x"
 } as const;
 const oldReserveFundCampaignAddress = {
-  10:"0x690f51E4D54c131e4ed68A80b59Feb3487DeE898",
+  10:"0xEBD93fffdAE479808080550f3F1701d018eEB832",
   8453:"0x8E8C7d84F08a0896D042BA80eebc0a76549D8da2",
   42161:"0x"
 } as const;
@@ -258,10 +258,11 @@ export async function  createTransaction(transactionData : MetaTransactionData,t
     provider:rpcUrl,
     signer: signer,
     safeAddress: safeAddress,
-
    })
+
   const safeTransactionProtocol = await protocolKit.createTransaction({ transactions: [transactionData] })
   const executeTxResponse = await protocolKit.executeTransaction(safeTransactionProtocol)
+  
 
 
 
@@ -329,7 +330,10 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
     }
   }
 
-  
+  if(chainId == 10){
+     return createTransaction({data,to:reserveAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {console.log("error",error)
+     })
+  }
 
   if(contractType == "portal"){
     return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {

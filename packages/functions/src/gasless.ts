@@ -8,9 +8,12 @@ const TYPE = "gasless";
 export const create = ApiHandler(async (_evt) => {
   const apiKey = useHeader("x-api-key")
   const chainId= ChainIdSchema.parse(parseInt(useHeader("x-chain-id") ?? "10"))
+
+ 
   
   if (apiKey !== Config.GASLESS_API_KEY){
     return {
+
       statusCode: 401,
       body: "Unauthorized",
     };
