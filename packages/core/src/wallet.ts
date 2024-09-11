@@ -254,6 +254,8 @@ export async function  createTransaction(transactionData : MetaTransactionData,t
   const safeAddress = getAddress(type)
   const rpcUrl = getRPC(chainId)
 
+  console.log({rpcUrl,safeAddress,signer,transactionData})
+
   const protocolKit  = await Safe.default.init({
     provider:rpcUrl,
     signer: signer,
@@ -290,6 +292,7 @@ export function getGitCoinMultiReserveFunderRoundAddress(chainId : ChainId){
 }
 
 export async function reserveFundCampaign(contractAddress : string, amount: number,deadline : number,v : number, s: string,r: string, ethSignedMessage: string,chainId:ChainId,contractType: 'prize' | 'portal' ){
+  console.log({contractAddress,amount,deadline,v,s,r,ethSignedMessage,chainId,contractType})
   const reserveAddress = getReserveFundCampaignAddress(chainId)
   const publicClient = createPublicClient({
     transport: http(getRPC(chainId)),
@@ -323,16 +326,18 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
       functionName:"VERSION",
     })
 
+    console.log({VERSION})
+
     if(VERSION.toString() === "2"){
       return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {
         console.log("error",error)
       })
     }
   }
+  console.log({chainId})
 
-  if(chainId == 10){
-     return createTransaction({data,to:reserveAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {console.log("error",error)
-     })
+  if(chainId === 10){
+     return createTransaction({data,to:reserveAddress,value:"0"},"reserve",chainId)
   }
 
   if(contractType == "portal"){

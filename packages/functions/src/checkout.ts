@@ -215,6 +215,7 @@ export const webhookTest = ApiHandler(async (_evt) => {
     switch (event.type) {
       case 'checkout.session.completed':
         
+        
         if(event.data.object.cancel_url !== "https://stripe.com"){
             
             const checkoutSessionCompleted = event.data.object;
@@ -224,17 +225,80 @@ export const webhookTest = ApiHandler(async (_evt) => {
                 body: "Invalid request without metadata",
                 };
             }
-    
-            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,type} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
+            if(!checkoutSessionCompleted.payment_intent || !checkoutSessionCompleted.amount_total){
+                return {
+                    statusCode: 400,
+                    body: "Invalid request without payment intent or amount total",
+                };
+
+            }
+            
+           
+            let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,payWihtoutLogin,type} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
     
             if(!chainId ){
                 chainId = 10
             }
+
+            if(!type){
+                type = "portal"
+            }
             
             chainId = parseInt(chainId.toString())
             console.log(`🔔  Checkout session completed: ${checkoutSessionCompleted.id}`);
-            const hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId,type as "prize" | "portal");
+            let hash = undefined;
+
+            if(payWihtoutLogin ==='1'){
+                let nonLoginUser : Database["public"]["Tables"]["non_login_users"]["Row"];
+                const email = checkoutSessionCompleted.customer_email ?? "default@viaprize.org"
+                const isNewNonLoginUser =await Supabase.ifNonLoginUserExists(email);
+                if(isNewNonLoginUser){
+                    nonLoginUser = await Supabase.getNonLoginUser(email)
+                }
+                else{
+                    const key = Wallet.generateEncryptedPrivateKey();
+                    const walletAddress = Wallet.generateAddressFromEncryptedPrivateKey(key);
+                    nonLoginUser = await Supabase.createNonLoginUser({
+                        email,
+                        key,
+                        wallet_address:walletAddress,
+
+                    })
+                }
+                
+                
+                deadline = Math.floor(Date.now() / 1000) + 100_000;
+                const loginUserRSV =await Wallet.signPermitUsdc(amount,contractAddress,chainId as Wallet.ChainId,nonLoginUser.key,deadline)
+                r = loginUserRSV.r;
+                s = loginUserRSV.s;
+                v = parseInt(loginUserRSV.v?.toString() ?? '0');
+                ethSignedMessage = loginUserRSV.hash;
+                hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId,type as "prize" | "portal");
+            }
+            console.log("hiiiiii")
+           
+            hash = await Wallet.reserveFundCampaign(contractAddress, amount,deadline,v,s,r,ethSignedMessage,chainId as Wallet.ChainId,type as "prize" | "portal");
+            
+            
             console.log({hash})
+
+            if(hash){
+                const userAddress = await Wallet.Utils.recoverAddress({
+                    hash:ethSignedMessage as `0x${string}`,
+                    signature: {
+                        r : r as `0x${string}`,
+                        s: s as `0x${string}`,
+                        v: BigInt(v)
+                    }
+
+                })
+                await Supabase.addFiatPayments(
+                    userAddress.toLowerCase(),
+                    checkoutSessionCompleted.payment_intent.toString(),
+                    checkoutSessionCompleted.amount_total,
+                    contractAddress.toLowerCase(),
+                )
+            }
             return {
                 statusCode: 200,
                 body: JSON.stringify({
@@ -260,6 +324,7 @@ export const webhookTest = ApiHandler(async (_evt) => {
                 latestDonation
             })
         }
+        
         
       // ... handle other event types
       default:

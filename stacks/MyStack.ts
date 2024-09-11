@@ -115,7 +115,7 @@ export function API({ stack,app }: StackContext) {
       "POST /donations/ethereum/webhook": "packages/functions/src/donations.ethereumWebhook",
       "POST /donations/optimism/webhook": "packages/functions/src/donations.optimismWebhook",
       "POST /donations/arbitrum/webhook": "packages/functions/src/donations.arbitrumWebhook",
-      "POST /donations/polygon/webhook": "packages/functions/src/donations.polygonWebhook"
+      "POST /donations/polygon/webhook": "packages/functions/src/donations.polygonWebhook",
 
       // "POST /checkout/paypal/capture/manuel": "packages/functions/src/checkout-paypal.triggerManuelCapture"
       // "POST /checkout/test": "packages/functions/src/checkout.createTestCheckout",
