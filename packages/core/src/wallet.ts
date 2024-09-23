@@ -243,7 +243,7 @@ export async function getTokenBalance(token: string | "eth",type:WalletType,chai
 }
 
 
-export async function  createTransaction(transactionData : MetaTransactionData,type: WalletType,chainId: ChainId) : Promise<string>{
+export async function  createTransaction(transactionDatas : MetaTransactionData[],type: WalletType,chainId: ChainId) : Promise<string>{
   const signer = getSigner(type);
   if(!signer){
     throw new Error("No signer key found")
@@ -254,7 +254,7 @@ export async function  createTransaction(transactionData : MetaTransactionData,t
   const safeAddress = getAddress(type)
   const rpcUrl = getRPC(chainId)
 
-  console.log({rpcUrl,safeAddress,signer,transactionData})
+  console.log({rpcUrl,safeAddress,signer,transactionDatas})
 
   const protocolKit  = await Safe.default.init({
     provider:rpcUrl,
@@ -262,7 +262,7 @@ export async function  createTransaction(transactionData : MetaTransactionData,t
     safeAddress: safeAddress,
    })
 
-  const safeTransactionProtocol = await protocolKit.createTransaction({ transactions: [transactionData] })
+  const safeTransactionProtocol = await protocolKit.createTransaction({ transactions: transactionDatas })
   const executeTxResponse = await protocolKit.executeTransaction(safeTransactionProtocol)
   
 
@@ -329,7 +329,7 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
     console.log({VERSION})
 
     if(VERSION.toString() === "2"){
-      return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {
+      return createTransaction([{data,to:oldReserveFundCampaignAddress[chainId],value:"0"}],"reserve",chainId).catch((error) => {
         console.log("error",error)
       })
     }
@@ -337,15 +337,15 @@ export async function reserveFundCampaign(contractAddress : string, amount: numb
   console.log({chainId})
 
   if(chainId === 10){
-     return createTransaction({data,to:reserveAddress,value:"0"},"reserve",chainId)
+     return createTransaction([{data,to:reserveAddress,value:"0"}],"reserve",chainId)
   }
 
   if(contractType == "portal"){
-    return createTransaction({data,to:oldReserveFundCampaignAddress[chainId],value:"0"},"reserve",chainId).catch((error) => {
+    return createTransaction([{data,to:oldReserveFundCampaignAddress[chainId],value:"0"}],"reserve",chainId).catch((error) => {
       console.log("error",error)
     })
   }
-  return createTransaction({data,to:reserveAddress,value:"0"},"reserve",chainId).catch((error) => {
+  return createTransaction([{data,to:reserveAddress,value:"0"}],"reserve",chainId).catch((error) => {
     console.log("error",error)
   })
 }
@@ -414,7 +414,7 @@ export async function erc20Transfer(token:`0x${string}`,to:`0x${string}`,amount:
     functionName:"transfer",
     args:[to,amount]
   })
-  return createTransaction({data,to:token,value:"0"},walletType,chainId).catch((error) => {
+  return createTransaction([{data,to:token,value:"0"}],walletType,chainId).catch((error) => {
     console.log("error",error)
   })
   

@@ -71,7 +71,6 @@ export const webhook = ApiHandler(async (_evt) => {
     switch (event.type) {
       case 'checkout.session.completed':
         
-        
         if(event.data.object.cancel_url !== "https://stripe.com"){
             
             const checkoutSessionCompleted = event.data.object;
@@ -168,17 +167,29 @@ export const webhook = ApiHandler(async (_evt) => {
                 body: "Amount total not found",
                 };
         }
-        const funds =  event.data.object.amount_total / 100;
-        const latestFunds  = await Supabase.addFundsToExtraPortal(funds,"bacb6584-7e45-465b-b4af-a3ed24a84233")
-        const latestDonation = await Supabase.addDonationToExtraPortal(event.data.object.customer_details?.name ?? "Anonymous",funds,"bacb6584-7e45-465b-b4af-a3ed24a84233")
-       
+
+        if(event.data.object.metadata?.extra_id){
+
+            const funds =  event.data.object.amount_total / 100;
+            const latestFunds  = await Supabase.addFundsToExtraPortal(funds,event.data.object.metadata?.extra_id)
+            const latestDonation = await Supabase.addDonationToExtraPortal(event.data.object.customer_details?.name ?? "Anonymous",funds,event.data.object.metadata?.extra_id)    
+            return {
+                statusCode: 200,
+                body: JSON.stringify({
+                    latestFunds,
+                    latestDonation
+                })
+            }
+        }
+
         return {
             statusCode: 200,
             body: JSON.stringify({
-                latestFunds,
-                latestDonation
-            })
+                message:"Checkout session completed",
+            }),
         }
+       
+      
         
         
       // ... handle other event types

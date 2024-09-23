@@ -19,7 +19,8 @@ export const create = ApiHandler(async (_evt) => {
     };
 
   }
-  const {data,to,value,operation}: Wallet.CreateTransactionData =  useJsonBody()
+  const body: Wallet.CreateTransactionData | Wallet.CreateTransactionData[] =  useJsonBody()
+  const {data,to,value,operation}: Wallet.CreateTransactionData = Array.isArray(body) ? body[0] : body
   if (!data || !to || !value) {
     return {
       statusCode: 400,
@@ -27,7 +28,7 @@ export const create = ApiHandler(async (_evt) => {
     };
   }
   try {
-    const hash = await Wallet.createTransaction({data,to,value,operation},TYPE,chainId)
+    const hash = await Wallet.createTransaction(Array.isArray(body) ? body : [{data,to,value,operation}],TYPE,chainId)
     return {
       statusCode: 200,
       body:JSON.stringify({hash}),

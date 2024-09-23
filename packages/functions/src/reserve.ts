@@ -22,7 +22,7 @@ export const create = ApiHandler(async (_evt) => {
     };
   }
   try {
-    const hash = await Wallet.createTransaction({data,to,value,operation},TYPE,chainId)
+    const hash = await Wallet.createTransaction([{data,to,value,operation}],TYPE,chainId)
     return {
       statusCode: 200,
       body:JSON.stringify({hash}),

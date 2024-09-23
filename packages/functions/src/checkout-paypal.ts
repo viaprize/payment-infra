@@ -132,11 +132,11 @@ export const webhook = ApiHandler(async (_evt) => {
     };
   }
   const rawTxData = await Table.getPaypalMetadata(customId)
-  const hash = await Wallet.createTransaction({
+  const hash = await Wallet.createTransaction([{
     data: rawTxData,
     to: Wallet.getGitCoinMultiReserveFunderRoundAddress(8453),
     value: "0",
-  },"gasless",8453)
+  }],"gasless",8453)
   return {
     statusCode: 200,
     body: JSON.stringify({message:"success",hash}),
