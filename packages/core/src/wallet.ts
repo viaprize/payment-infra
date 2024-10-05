@@ -419,6 +419,66 @@ export async function erc20Transfer(token:`0x${string}`,to:`0x${string}`,amount:
   })
   
 }
+export async function signWalletSignatureUsingCustodialWallet({chainId,encryptedKey,amount,spender,deadline}:{deadline:bigint,chainId:ChainId,encryptedKey:string,amount:bigint,spender:`0x${string}`}) {
+  const aesEncryption = new AESEncryption();
+  aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
+  const key = aesEncryption.decrypt(encryptedKey) 
+  const account = privateKeyToAccount(key as `0x${string}`)
+  const chainObject = getChainObject(chainId);
+  const wallet = createWalletClient({
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
+    account,
+  });
+  const publicClient = createPublicClient({
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
+  });
+  const usdc = getUsdcAddress(chainId);
+  const nonce = await publicClient.readContract({
+    abi: [
+      {
+        constant: true,
+        inputs: [
+          {
+            name: 'owner',
+            type: 'address',
+          },
+        ],
+        name: 'nonces',
+        outputs: [
+          {
+            name: '',
+            type: 'uint256',
+          },
+        ],
+        payable: false,
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ] as const,
+    address: usdc,
+    functionName: 'nonces',
+    args: [wallet.account.address],
+  });
+  
+
+  const signType = usdcSignType({
+    deadline: deadline,
+    nonce: nonce,
+    owner: wallet.account.address,
+    spender,
+    usdc:usdc,
+    value: BigInt(amount),
+    chainId:chainId
+  })
+  const hash = hashTypedData(signType as any)
+  const signature = await wallet.signTypedData(signType as any);
+  return {
+    hash,
+    signature,
+  }
+}
 
 export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   amount: string;
@@ -435,7 +495,6 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   
   const key = aesEncryption.decrypt(encryptedKey)
   const account = privateKeyToAccount(key as `0x${string}`)
-  console.log({account})
   const wallet = createWalletClient({
     transport: http(getRPC(chainId)),
     chain: chainObject,
