@@ -1,13 +1,14 @@
 import { ApiHandler, useBody, useHeader, useJsonBody } from "sst/node/api";
-import { CheckoutMetadataType,  Stripe} from "@typescript-starter/core/payment/stripe";
+import { CheckoutMetadataType,  Stripe, WEBHOOK_TAG} from "@typescript-starter/core/payment/stripe";
 import * as Wallet from "@typescript-starter/core/wallet";
 import {Supabase} from "@typescript-starter/core/supabase"
 import { Config } from "sst/node/config";
 import { Database } from "@typescript-starter/core/types/database.types";
 
 
+type CheckoutData = {checkoutMetadata:CheckoutMetadataType,title:string,imageUrl:string,backendId:string,amount:number,successUrl:string,cancelUrl:string}
 
-type CheckoutData = {checkoutMetadata:CheckoutMetadataType,title:string,imageUrl:string,backendId:string,amount:number,successUrl:string,cancelUrl:string} 
+
 export const create = ApiHandler(async (_evt) => {
   const {checkoutMetadata,title,imageUrl,backendId,successUrl,cancelUrl} : CheckoutData = useJsonBody()
   if(checkoutMetadata.payWihtoutLogin.toString() === undefined) {
@@ -68,10 +69,23 @@ export const webhook = ApiHandler(async (_evt) => {
         };
     }
 
+
     switch (event.type) {
       case 'checkout.session.completed':
         
         if(event.data.object.cancel_url !== "https://stripe.com"){
+            if (
+                !event.data.object.metadata ||
+                !event.data.object.metadata.tag ||
+                event.data.object.metadata.tag !== WEBHOOK_TAG
+              ) {
+                return {
+                  statusCode: 200,
+                  body: JSON.stringify({
+                    message: 'Metadata  tag not matched provided',
+                  }),
+                }
+            }
             
             const checkoutSessionCompleted = event.data.object;
             if(!checkoutSessionCompleted.metadata){
@@ -90,6 +104,7 @@ export const webhook = ApiHandler(async (_evt) => {
             
            
             let { contractAddress, amount,backendId,deadline,r,s,v,ethSignedMessage,chainId,payWihtoutLogin,type} : CheckoutMetadataType = checkoutSessionCompleted.metadata as unknown as CheckoutMetadataType;
+            
     
             if(!chainId ){
                 chainId = 10

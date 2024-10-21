@@ -19,6 +19,7 @@ export type  CheckoutMetadataType = {
     chainId: number;
     payWihtoutLogin: string;
     type: string;
+    tag:string;
 }
 
 
@@ -47,6 +48,7 @@ export const Events = {
         })
     )
 }
+export const WEBHOOK_TAG = "V1_VIAPRIZE"
 export async  function createCheckout(checkoutMetadata: CheckoutMetadataType,title:string,imageUrl:string,successUrl:string,cancelUrl:string){
     const paymentClient = new Stripe(Config.PAYMENT_API_KEY)
     const session = await paymentClient.checkout.sessions.create({
@@ -66,7 +68,8 @@ export async  function createCheckout(checkoutMetadata: CheckoutMetadataType,tit
             },
         ],
         metadata:{
-            ...checkoutMetadata
+            ...checkoutMetadata,
+            tag:WEBHOOK_TAG
         },
         success_url: successUrl,
         cancel_url: cancelUrl,

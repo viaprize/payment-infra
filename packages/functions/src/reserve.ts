@@ -5,7 +5,7 @@ import { Table } from "@typescript-starter/core/table";
 
 const TYPE = "reserve";
 export const create = ApiHandler(async (_evt) => {
-  const {data,to,value,operation}: Wallet.CreateTransactionData =  useJsonBody()
+  
   const apiKey = useHeader("x-api-key")
   const chainId= ChainIdSchema.parse(parseInt(useHeader("x-chain-id") ?? "0"))
   if (apiKey !== Config.GASLESS_API_KEY){
@@ -15,6 +15,8 @@ export const create = ApiHandler(async (_evt) => {
     };
 
   }
+  const body: Wallet.CreateTransactionData | Wallet.CreateTransactionData[] =  useJsonBody()
+  const {data,to,value,operation}: Wallet.CreateTransactionData = Array.isArray(body) ? body[0] : body
   if (!data || !to || !value) {
     return {
       statusCode: 400,
@@ -23,6 +25,7 @@ export const create = ApiHandler(async (_evt) => {
   }
   try {
     const hash = await Wallet.createTransaction([{data,to,value,operation}],TYPE,chainId)
+    console.log({hash})
     return {
       statusCode: 200,
       body:JSON.stringify({hash}),

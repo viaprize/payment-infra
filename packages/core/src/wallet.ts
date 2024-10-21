@@ -6,12 +6,13 @@ import type { MetaTransactionData} from '@safe-global/safe-core-sdk-types';
 import { privateKeyToAddress,generatePrivateKey, privateKeyToAccount} from 'viem/accounts'
 import { Config } from "sst/node/config";
 import Safe from "@safe-global/protocol-kit";
-import {  createPublicClient, createWalletClient, encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, hexToSignature, http, parseAbiParameters, parseUnits,getAddress as verifyAddress, recoverAddress, recoverPublicKey, serializeSignature, parseEther, hashTypedData } from "viem";
+import {  createPublicClient, createWalletClient, encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, hexToSignature, http, parseAbiParameters, parseUnits,getAddress as verifyAddress, recoverAddress, recoverPublicKey, serializeSignature, parseEther, hashTypedData, encodePacked, keccak256 } from "viem";
 import AESEncryption from "aes-encryption";
 import { getTokenByChainIdAndAddress, TToken } from "@gitcoin/gitcoin-chain-data";
 import {chain, groupBy} from "lodash"
 import { MULTI_ROUND_CHECKOUT } from "./constants";
 import {arbitrum, base, optimism} from "viem/chains"
+import { exec } from "child_process";
 
 type WalletType = "gasless" | "reserve";
 
@@ -153,6 +154,37 @@ const gitCoinMultiReserveFunderRoundAddress = {
   8453: "0x042623838e4893ab739a47b46D246140477e0aF1",
   42161: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174"
 }
+export function voteMessageHash(
+  submission: string,
+  amount: number,
+  nonce: number,
+  contractAddress: string,
+): string {
+  const encodedMessage = encodePacked(
+    [
+      'string',
+      'bytes32',
+      'string',
+      'uint256',
+      'string',
+      'uint256',
+      'string',
+      'address',
+    ],
+    [
+      'VOTE FOR ',
+      submission as `0x${string}`,
+      ' WITH AMOUNT ',
+      BigInt(amount),
+      ' AND NONCE ',
+      BigInt(nonce),
+      ' WITH PRIZE CONTRACT ',
+      contractAddress as `0x${string}`,
+    ],
+  )
+  const messageHash = keccak256(encodedMessage)
+  return messageHash
+}
 
 export const getUsdcAddress = (chainId: ChainId) => usdcAddress[chainId];
 
@@ -251,6 +283,7 @@ export async function  createTransaction(transactionDatas : MetaTransactionData[
   if(!Config.OP_RPC_URL){
     throw new Error("No OP_RPC_URL found")
   }
+
   const safeAddress = getAddress(type)
   const rpcUrl = getRPC(chainId)
 
@@ -261,10 +294,11 @@ export async function  createTransaction(transactionDatas : MetaTransactionData[
     signer: signer,
     safeAddress: safeAddress,
    })
-
+  
   const safeTransactionProtocol = await protocolKit.createTransaction({ transactions: transactionDatas })
   const executeTxResponse = await protocolKit.executeTransaction(safeTransactionProtocol)
-  
+
+
 
 
 
@@ -277,6 +311,7 @@ export async function  createTransaction(transactionDatas : MetaTransactionData[
   
   console.log("output",output)
 
+  
  
   
   return executeTxResponse.hash
@@ -418,6 +453,58 @@ export async function erc20Transfer(token:`0x${string}`,to:`0x${string}`,amount:
     console.log("error",error)
   })
   
+}
+export async function signVoteSignatureUsingCustodialWallet({
+  amount,
+  contractAddress,
+  encryptedKey,
+  submissionHash,
+  chainId,
+}:{
+  submissionHash: `0x${string}`;
+  amount: number;
+  contractAddress: `0x${string}`;
+  encryptedKey:`0x${string}`;
+  chainId:ChainId;
+}){
+  const aesEncryption = new AESEncryption();
+  aesEncryption.setSecretKey(Config.AES_SECRET_KEY);
+  const key = aesEncryption.decrypt(encryptedKey)
+  const account = privateKeyToAccount(key as `0x${string}`)
+  const chainObject = getChainObject(chainId);
+  const wallet = createWalletClient({
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
+    account,
+  });
+  const publicClient = createPublicClient({
+    transport: http(getRPC(chainId)),
+    chain: chainObject,
+  });
+  const nonce = await publicClient.readContract({
+    abi:[{
+      inputs: [],
+      name: 'nonce',
+      outputs: [
+        {
+          internalType: 'uint256',
+          name: '',
+          type: 'uint256',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    }] as const,
+    address: contractAddress,
+    functionName:'nonce',
+  })
+  const messageHash = voteMessageHash(submissionHash, amount, parseInt(nonce.toString()) + 1, contractAddress);
+  const signature = await wallet.signMessage({
+    message:{
+      raw: messageHash as `0x${string}`,
+    }
+  });
+  return {signature,hash:messageHash}
 }
 export async function signWalletSignatureUsingCustodialWallet({chainId,encryptedKey,amount,spender,deadline}:{deadline:bigint,chainId:ChainId,encryptedKey:string,amount:bigint,spender:`0x${string}`}) {
   const aesEncryption = new AESEncryption();

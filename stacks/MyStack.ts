@@ -100,7 +100,8 @@ export function API({ stack,app }: StackContext) {
       "GET /reserve/balance": "packages/functions/src/reserve.getBalance",
       "GET /reserve/hash": "packages/functions/src/reserve.getHash",
       "GET /wallet/generate": "packages/functions/src/wallet.generate",
-      "POST /wallet/sign-usdc": "packages/functions/src/wallet.signUsdc", 
+      "POST /wallet/sign-usdc": "packages/functions/src/wallet.signUsdc",
+      "POST /wallet/sign-vote": "packages/functions/src/wallet.signVote", 
       
       "POST /reserve": "packages/functions/src/reserve.create",
       "POST /checkout": "packages/functions/src/checkout.create",
