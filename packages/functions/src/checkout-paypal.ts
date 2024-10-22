@@ -30,54 +30,54 @@ export const create = ApiHandler(async (_evt) => {
 }); 
 
 export const triggerManuelCapture = ApiHandler(async (_evt) => {
-  const {customId,paypalId,email,full_name} : {customId:string,paypalId:string,email:string,full_name:string} = useJsonBody()
-  console.log({customId,paypalId,email,full_name})
-  const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
-  const donations = JSON.parse(groupedDonationsByRoundId) as  {
-    amount: string;
-    anchorAddress: string | undefined;
-    roundId: string;
-    chainId: ChainId;
-  }[]
-  const totalAmount = donations.reduce((acc, val) => acc + parseFloat(val.amount), 0);
-  const amountAfterFees = totalAmount * ((100-PERCENTAGE) / 100);
-  const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterFees);
-  const newDonations = donations.map((d, i) => ({
-    ...d,
-    amount: newAmounts[i].toString(),
-  }));
-  const userExist = await Supabase.ifNonLoginUserExists(email)
-  if(!userExist){
-    const key = Wallet.generateEncryptedPrivateKey()
-    const account = Wallet.getAccountFromEncryptedPrivateKey(key);
-    await Supabase.createNonLoginUser({
-      email:email,
-      key:key,
-      wallet_address:account.address,
-    })
-  }
-  const nonLoginUser = await Supabase.getNonLoginUser(email)
+  // const {customId,paypalId,email,full_name} : {customId:string,paypalId:string,email:string,full_name:string} = useJsonBody()
+  // console.log({customId,paypalId,email,full_name})
+  // const groupedDonationsByRoundId = await Table.getPaypalMetadata(customId)
+  // const donations = JSON.parse(groupedDonationsByRoundId) as  {
+  //   amount: string;
+  //   anchorAddress: string | undefined;
+  //   roundId: string;
+  //   chainId: ChainId;
+  // }[]
+  // const totalAmount = donations.reduce((acc, val) => acc + parseFloat(val.amount), 0);
+  // const amountAfterFees = totalAmount * ((100-PERCENTAGE) / 100);
+  // const newAmounts = adjustArraySumProportionally(donations.map(d => parseFloat(d.amount)), amountAfterFees);
+  // const newDonations = donations.map((d, i) => ({
+  //   ...d,
+  //   amount: newAmounts[i].toString(),
+  // }));
+  // const userExist = await Supabase.ifNonLoginUserExists(email)
+  // if(!userExist){
+  //   const key = Wallet.generateEncryptedPrivateKey()
+  //   const account = Wallet.getAccountFromEncryptedPrivateKey(key);
+  //   await Supabase.createNonLoginUser({
+  //     email:email,
+  //     key:key,
+  //     wallet_address:account.address,
+  //   })
+  // }
+  // const nonLoginUser = await Supabase.getNonLoginUser(email)
 
-  const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
+  // const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
 
-  if(hash){
+  // if(hash){
       
-    await Supabase.createGitCoinUser({
-      chain_id: donations[0].chainId.toString(),
-      email: nonLoginUser.email,
-      full_name:full_name,
-      paypal_id:paypalId,
-      round_id: donations[0].roundId,
-      amount: amountAfterFees,
-    })
+  //   await Supabase.createGitCoinUser({
+  //     chain_id: donations[0].chainId.toString(),
+  //     email: nonLoginUser.email,
+  //     full_name:full_name,
+  //     paypal_id:paypalId,
+  //     round_id: donations[0].roundId,
+  //     amount: amountAfterFees,
+  //   })
 
-    console.log("Donation creartedddds")
-  }
+  //   console.log("Donation creartedddds")
+  // }
 
   return {
     statusCode: 200,
     body: JSON.stringify({
-      hash: hash
+      hi:"jdk"
     }),
   };
 
@@ -164,6 +164,7 @@ export const captureCheckout = ApiHandler(async (_evt) => {
     console.log(JSON.stringify(res))
     let amountAfterFees;
     if(res.purchase_units[0].payments.captures[0].status === "PENDING"){
+
       amountAfterFees = parseFloat(res.purchase_units[0].payments.captures[0].amount.value);
     }
     else{
@@ -203,13 +204,13 @@ export const captureCheckout = ApiHandler(async (_evt) => {
     const hash = await Wallet.fundGitcoinRounds(nonLoginUser.key,newDonations)
     console.log({hash})
 
-    if(hash && userExist){
-      
+    if(hash){
+      const verified = res["payment_source"]["paypal"]["account_status"] ?? "unknown"
       await Supabase.createGitCoinUser({
         chain_id: donations[0].chainId.toString(),
         email: nonLoginUser.email,
         full_name:`${res.payer.name.given_name} ${res.payer.name.surname}`,
-        paypal_id:res.payer.payer_id,
+        paypal_id: `${res.payer.payer_id}#${verified}`,
         round_id: donations[0].roundId,
         amount: amountAfterPlatfromFees,
       })

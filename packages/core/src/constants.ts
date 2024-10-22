@@ -476,4 +476,4 @@ export const MULTI_ROUND_CHECKOUT = [
       stateMutability: 'nonpayable',
       type: 'function',
     },
-  ] as const;
+] as const;
