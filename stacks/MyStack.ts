@@ -5,6 +5,7 @@ export function API({ stack,app }: StackContext) {
   const GASLESS_API_KEY = new Config.Secret(stack, "GASLESS_API_KEY");
   const RESERVE_KEY = new Config.Secret(stack, "RESERVE_KEY")
   const OP_RPC_URL = new Config.Secret(stack, "OP_RPC_URL")
+  const CELO_RPC_URL = new Config.Secret(stack, "CELO_RPC_URL")
   const GASLESS_KEY = new Config.Secret(stack, "GASLESS_KEY")
   const PAYMENT_API_KEY = new Config.Secret(stack, "PAYMENT_API_KEY")
   const PAYMENT_WEBHOOK_SECRET = new Config.Secret(stack,"PAYMENT_WEBHOOK_SECRET")
@@ -69,6 +70,7 @@ export function API({ stack,app }: StackContext) {
           GASLESS_API_KEY,
           RESERVE_KEY,
           OP_RPC_URL,
+          CELO_RPC_URL,
           GASLESS_KEY,
           PAYMENT_API_KEY,
           PAYMENT_WEBHOOK_SECRET,
@@ -126,17 +128,17 @@ export function API({ stack,app }: StackContext) {
 
   bus.subscribe("wallet.transaction", {
     handler: "packages/functions/src/events/transaction-created.handler",
-    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
+    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL,CELO_RPC_URL]
   });
 
   bus.subscribe("donation.received", {
     handler: "packages/functions/src/events/donation-received.handler",
-    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
+    bind:[table,TELEGRAM_BOT_TOKEN,OP_RPC_URL,BASE_RPC_URL,GASLESS_KEY,RESERVE_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL,CELO_RPC_URL]
   });
  
   bus.subscribe("checkout.refunded",{
     handler:"packages/functions/src/events/checkout-refunded.handler",
-    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL]
+    bind:[table,OP_RPC_URL,BASE_RPC_URL,SUPABASE_ANON_KEY,SUPABASE_URL,PAYMENT_API_KEY,PAYMENT_WEBHOOK_SECRET,PAYMENT_SECRET_KEY, TESTMODE_PAYPAL_CLIENT_ID, TESTMODE_PAYPAL_SECRET_KEY,AES_SECRET_KEY,ARBITRUM_RPC_URL,CELO_RPC_URL]
   })
   stack.addOutputs({
     ApiEndpoint: api.url,

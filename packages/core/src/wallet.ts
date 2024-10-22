@@ -11,8 +11,7 @@ import AESEncryption from "aes-encryption";
 import { getTokenByChainIdAndAddress, TToken } from "@gitcoin/gitcoin-chain-data";
 import {chain, groupBy} from "lodash"
 import { MULTI_ROUND_CHECKOUT } from "./constants";
-import {arbitrum, base, optimism} from "viem/chains"
-import { exec } from "child_process";
+import {arbitrum, base, optimism, celo} from "viem/chains"
 
 type WalletType = "gasless" | "reserve";
 
@@ -133,18 +132,21 @@ const safeWallets = {
 const reserveFundCampaignAddress = {
   10:"0xEBD93fffdAE479808080550f3F1701d018eEB832",
   8453:"0xEFB4611950c2bCa4e41c5992a0D404EA81e5D14D",
-  42161:"0x"
+  42161:"0x",
+  42220:"0x"
 } as const;
 const oldReserveFundCampaignAddress = {
   10:"0xEBD93fffdAE479808080550f3F1701d018eEB832",
   8453:"0x8E8C7d84F08a0896D042BA80eebc0a76549D8da2",
-  42161:"0x"
+  42161:"0x",
+  42220:"0x"
 } as const;
 
 const usdcAddress = {
   10:"0x0b2c639c533813f4aa9d7837caf62653d097ff85",
   8453:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-  42161:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+  42161:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  42220:"0xcebA9300f2b948710d2653dD7B07f33A8B32118C"
 } as const;
 
 
@@ -152,7 +154,8 @@ const usdcAddress = {
 const gitCoinMultiReserveFunderRoundAddress = {
   10: "0x15fa08599EB017F89c1712d0Fe76138899FdB9db",
   8453: "0x042623838e4893ab739a47b46D246140477e0aF1",
-  42161: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174"
+  42161: "0x8e1bD5Da87C14dd8e08F7ecc2aBf9D1d558ea174",
+  42220: "0xb1481E4Bb2a018670aAbF68952F73BE45bdAD62D"
 }
 export function voteMessageHash(
   submission: string,
@@ -200,7 +203,7 @@ export const Events = {
   ),
 };
 
-export type ChainId = 10 | 8453 | 42161;
+export type ChainId = 10 | 8453 | 42161 | 42220;
 
 export const ChainIdSchema = z.union([z.literal(10), z.literal(8453)]).default(10);
 
@@ -235,6 +238,8 @@ export  function getRPC(chainId: ChainId){
       return Config.BASE_RPC_URL
     case 42161:
       return Config.ARBITRUM_RPC_URL
+    case 42220:
+      return Config.CELO_RPC_URL
   }
 }
 
@@ -246,6 +251,8 @@ export function getChainObject(chain: ChainId){
       return base;
     case 42161:
       return arbitrum;
+    case 42220:
+      return celo;
   }
 }
 
@@ -571,9 +578,10 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   amount: string;
   anchorAddress: string | undefined;
   roundId: string;
+  chainId: ChainId;
 }[]) {
   console.log({donations})
-  const chainId : ChainId = 42161; 
+  const chainId : ChainId = donations[0].chainId; 
   const aesEncryption = new AESEncryption();
 
   const chainObject = getChainObject(chainId);

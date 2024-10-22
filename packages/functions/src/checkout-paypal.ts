@@ -8,24 +8,25 @@ import { Supabase } from "@typescript-starter/core/supabase";
 
 
 
+export type ChainId = 10 | 8453 | 42161 | 42220;
 
 const PERCENTAGE = 5;
 export const create = ApiHandler(async (_evt) => {
-  return {
-    statusCode:402,
-    body: JSON.stringify({
-      message:"Payment Not accepting"
-    }),
-  }
-  // const {amount,metadata,customId,chainId} : {amount:string,metadata:string,customId:string,chainId:string} = useJsonBody()
-  
-  // const res = await Paypal.createCheckout(amount,customId)
-  // console.log({res})
-  // await Table.updatePaypalMetadata(customId,metadata)
   // return {
-  //   statusCode: 200,
-  //   body: JSON.stringify(res),
-  // };
+  //   statusCode:402,
+  //   body: JSON.stringify({
+  //     message:"Payment Not accepting"
+  //   }),
+  // }
+  const {amount,metadata,customId,chainId} : {amount:string,metadata:string,customId:string,chainId:string} = useJsonBody()
+  
+  const res = await Paypal.createCheckout(amount,customId)
+  console.log({res})
+  await Table.updatePaypalMetadata(customId,metadata)
+  return {
+    statusCode: 200,
+    body: JSON.stringify(res),
+  };
 }); 
 
 export const triggerManuelCapture = ApiHandler(async (_evt) => {
@@ -36,6 +37,7 @@ export const triggerManuelCapture = ApiHandler(async (_evt) => {
     amount: string;
     anchorAddress: string | undefined;
     roundId: string;
+    chainId: ChainId;
   }[]
   const totalAmount = donations.reduce((acc, val) => acc + parseFloat(val.amount), 0);
   const amountAfterFees = totalAmount * ((100-PERCENTAGE) / 100);
@@ -61,7 +63,7 @@ export const triggerManuelCapture = ApiHandler(async (_evt) => {
   if(hash){
       
     await Supabase.createGitCoinUser({
-      chain_id: "42161",
+      chain_id: donations[0].chainId.toString(),
       email: nonLoginUser.email,
       full_name:full_name,
       paypal_id:paypalId,
@@ -184,6 +186,7 @@ export const captureCheckout = ApiHandler(async (_evt) => {
       amount: string;
       anchorAddress: string | undefined;
       roundId: string;
+      chainId: ChainId;
   }[]
 
   
@@ -203,7 +206,7 @@ export const captureCheckout = ApiHandler(async (_evt) => {
     if(hash && userExist){
       
       await Supabase.createGitCoinUser({
-        chain_id: "42161",
+        chain_id: donations[0].chainId.toString(),
         email: nonLoginUser.email,
         full_name:`${res.payer.name.given_name} ${res.payer.name.surname}`,
         paypal_id:res.payer.payer_id,
