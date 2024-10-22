@@ -61,7 +61,11 @@ export const signPermitUsdc = async (value:number,spender:string,chainId:ChainId
     value: BigInt(value),
     chainId:chainId
   }
-  const signType = usdcSignType(signData)
+  const signType = usdcSignType({
+    ...signData,
+    tokenName:"USD Coin",
+    version:"2"
+  })
   const hash = hashTypedData(signType as any)
 
   console.log({signType})
@@ -128,6 +132,12 @@ const safeWallets = {
   reserve: "0xF7D1D901d15BBf60a8e896fbA7BBD4AB4C1021b3",
 } as const;
 
+const minimumGaslessBalance = {
+  10: 100000000000000,
+  8453: 100000000000000,
+  42161: 100000000000000,
+  42220: 30000000000000000,
+}
 
 const reserveFundCampaignAddress = {
   10:"0xEBD93fffdAE479808080550f3F1701d018eEB832",
@@ -146,7 +156,7 @@ const usdcAddress = {
   10:"0x0b2c639c533813f4aa9d7837caf62653d097ff85",
   8453:"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
   42161:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-  42220:"0xcebA9300f2b948710d2653dD7B07f33A8B32118C"
+  42220:"0x4f604735c1cf31399c6e711d5962b2b3e0225ad3"
 } as const;
 
 
@@ -198,7 +208,7 @@ export const Events = {
       address: z.string(),
       type: z.union([z.literal("gasless"), z.literal("reserve")]),
       hash: z.string(),
-      chainId: z.union([z.literal(10), z.literal(8453), z.literal(42161)]),
+      chainId: z.union([z.literal(10), z.literal(8453), z.literal(42161),z.literal(42220)]),
     })
   ),
 };
@@ -231,6 +241,7 @@ function getSigner(type: WalletType){
 }
 
 export  function getRPC(chainId: ChainId){
+  console.log(Config.CELO_RPC_URL)
   switch(chainId){
     case 10:
       return Config.OP_RPC_URL
@@ -398,7 +409,10 @@ export const usdcSignType = ({
   nonce,
   deadline,
   usdc,
-  chainId
+  chainId,
+  tokenName,
+  version,
+
 }: {
   owner: string;
   spender: string;
@@ -406,7 +420,10 @@ export const usdcSignType = ({
   nonce: BigInt;
   deadline: BigInt;
   usdc: string;
+  
   chainId:number,
+  tokenName:string,
+  version:string
 }) => {
   return {
     message: {
@@ -444,18 +461,28 @@ export const usdcSignType = ({
     domain: {
       chainId: chainId,
       verifyingContract: usdc,
-      name: 'USD Coin',
-      version: '2',
+      // name: 'USD Coin',
+      // version: '2',
+      name:tokenName,
+      version:version,
     },
   };
 };
-
+export async function erc20TransferHash(token:`0x${string}`,to:`0x${string}`,amount:bigint,chainId:ChainId,walletType:WalletType){
+  const data = encodeFunctionData({
+    abi:erc20Abi,
+    functionName:"transfer",
+    args:[to,amount]
+  })
+  return data; 
+}
 export async function erc20Transfer(token:`0x${string}`,to:`0x${string}`,amount:bigint,chainId:ChainId,walletType:WalletType){
   const data = encodeFunctionData({
     abi:erc20Abi,
     functionName:"transfer",
     args:[to,amount]
   })
+  console.log("data erc20 transfer",{data})
   return createTransaction([{data,to:token,value:"0"}],walletType,chainId).catch((error) => {
     console.log("error",error)
   })
@@ -564,7 +591,9 @@ export async function signWalletSignatureUsingCustodialWallet({chainId,encrypted
     spender,
     usdc:usdc,
     value: BigInt(amount),
-    chainId:chainId
+    chainId:chainId,
+    tokenName:"USD Coin",
+    version:"2"
   })
   const hash = hashTypedData(signType as any)
   const signature = await wallet.signTypedData(signType as any);
@@ -581,7 +610,9 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   chainId: ChainId;
 }[]) {
   console.log({donations})
-  const chainId : ChainId = donations[0].chainId; 
+  let version = "2";
+  let usdName = "USD Coin";
+  const chainId : ChainId = parseInt(donations[0].chainId.toString()) as ChainId; 
   const aesEncryption = new AESEncryption();
 
   const chainObject = getChainObject(chainId);
@@ -599,7 +630,14 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     transport: http(getRPC(chainId)),
     chain: chainObject,
   });
-  const totalAmountInUSD = (donations.reduce((acc, d) => acc + parseFloat(d.amount), 0) * 1_000_000).toFixed(2);
+  const decimals = await publicClient.readContract({
+    abi:erc20Abi,
+    address:getUsdcAddress(chainId),
+    functionName:"decimals",
+  
+  })
+  const finalDecimals = 10 ** parseInt(decimals.toString())
+  const totalAmountInUSD = parseInt((donations.reduce((acc, d) => acc + parseFloat(d.amount), 0) * finalDecimals).toString());
   console.log({totalAmountInUSD})
   const nonce = await publicClient.readContract({
     abi: [
@@ -642,7 +680,10 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     value: BigInt(totalAmountInUSD),
     chainId:chainId
   })
- 
+  if(chainId === 42220){
+    version = "1";
+    usdName = "Glo Dollar"
+  }
   const signType = usdcSignType({
     deadline: BigInt(deadline),
     nonce: nonce,
@@ -650,7 +691,9 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     spender:gitCoinMultiReserveFunderRoundAddress[chainId],
     usdc:getUsdcAddress(chainId),
     value: BigInt(totalAmountInUSD),
-    chainId:chainId
+    chainId:chainId,
+    tokenName:usdName,
+    version:version
   })
 
   console.log({signType})
@@ -712,6 +755,7 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     parseInt(rsv?.v.toString()),
     rsv.r as Hex,
     rsv.s as Hex])
+  
   const txData = encodeFunctionData({
     abi: MULTI_ROUND_CHECKOUT,
     functionName:'allocateERC20Permit',
@@ -733,27 +777,73 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     account: privateKeyToAccount(getSigner("gasless") as `0x${string}`),
     chain: chainObject,
   })
+  const reserveAddress = getAddress("reserve")
+
   const transferHash = await erc20Transfer(usdcTT.address as `0x${string}`,account.address,BigInt(totalAmountInUSD),chainId,"reserve")
   console.log({transferHash})
+  
+  // await publicClient.waitForTransactionReceipt({
+  //   hash:transferHash as `0x${string}`,
+  //   confirmations:1
+  // });
+  // const finalTransactions: MetaTransactionData[] = []
+  // const approveFrom = encodeFunctionData({
+  //   abi:erc20Abi,
+  //   functionName:"approve",
+  //   args:[wallet.account.address,BigInt(totalAmountInUSD)]
+  // })
+  // finalTransactions.push({data:approveFrom,to:usdc,value:"0"})
+  // const sendUsd = encodeFunctionData({
+  //   abi:erc20Abi,
+  //   functionName:'transferFrom',
+  //   args:[reserveAddress,wallet.account.address,BigInt(totalAmountInUSD)]
+  // })
+  // finalTransactions.push({data:sendUsd,to:usdc,value:"0"})
+  // const userBalance = await publicClient.getBalance({
+  //   address:wallet.account.address,
+  // })
+  // console.log({userBalance})
+  // const shouldFundWallet = userBalance < BigInt(minimumGaslessBalance[chainId])
+  // console.log({shouldFundWallet})
+  // if(shouldFundWallet){
+  //   finalTransactions.push({
+  //     data:"0x",
+  //     to:wallet.account.address,
+  //     value:minimumGaslessBalance[chainId].toString()
+  //   })
+  // }
+  // finalTransactions.push({
+  //   to: gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
+  //   data: txData,
+  //   value:"0",
+  // })
 
-  await publicClient.waitForTransactionReceipt({
-    hash:transferHash as `0x${string}`,
-    confirmations:1
-  });
+
+
   try{
-    await publicClient.estimateGas({
-      account:wallet.account,
-      to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
+    // const data = await publicClient.call({
+    //   account:wallet.account,
+    //   to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
     
-      data:txData,
+    //   data:txData,
       
+    // })
+    // console.log({data})
+    const userBalance = await publicClient.getBalance({
+        address:wallet.account.address,
     })
+    console.log({userBalance})
+    const shouldFundWallet = userBalance < BigInt(minimumGaslessBalance[chainId])
+    console.log({shouldFundWallet})
+    if(shouldFundWallet){
+      throw new Error("Insufficient balance")
+    }
   } catch(e){
-    console.log("error",e)
+ 
     const transferGasHash = await gaslessWallet.sendTransaction({
       to:account.address,
       chain:chainObject ,
-      value:parseEther("0.0001"),
+      value:BigInt(minimumGaslessBalance[chainId]),
     })
     
     console.log({transferGasHash})
@@ -778,21 +868,22 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
     data:txData
   })
+  // const newData = await publicClient.call({
+  //   account:wallet.account,
+  //   to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
+  //   data:txData
+  // }) 
+  // console.log({newData})
 
   console.log({gasEstimate})
-  // const transferGasHash = await createTransaction({
-  //   to:account.address,
-  //   value:(parseFloat(gasEstimate.toString()) * 1.5).toString(),
-  //   data:"0x"
-  // },"gasless",8453)
-
-  // console.log({transferGasHash})
   const hash = await wallet.sendTransaction({
     to: gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,
     data: txData,
     value: BigInt(0),
     chain: getChainObject(chainId),
+    
   });
+  // const hash = await createTransaction(finalTransactions,"reserve",chainId)
 
   console.log({hash})
 

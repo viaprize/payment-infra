@@ -223,11 +223,21 @@ export const captureCheckout = ApiHandler(async (_evt) => {
     };
 
   }
+
+  // const hash = await Wallet.fundGitcoinRounds("cdede5a7bbdfe0d42922ec8ee1d26dc16b8a5f47156da94efef431031f1bc9fada6923dbc2966172bce1f36eada79d4c522699f2d4c4d7c65e8a911dd421cef9d2229d4f771b0132b93016174425ac1b",[
+  //   {
+  //    amount:'0.437',
+  //    anchorAddress:'0xbc2f710f899a848e15ca4a504d3fd2d9f749e0ed',
+  //    chainId:42220,
+  //    roundId:'19'
+  //   }
+  // ])
+  // console.log({hash})
  
   return {
     statusCode: 200,
     body: JSON.stringify({
-      ...res,
+      hi:"hi"
     }),
   };
 })
