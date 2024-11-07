@@ -35,6 +35,7 @@ export function API({ stack,app }: StackContext) {
     primaryIndex: { partitionKey: "index" },
   });
 
+
   const paypalMetadataTable = new Table(stack, "paypal-metadata", {
     fields:{
       customId: "string",

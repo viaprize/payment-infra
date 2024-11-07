@@ -637,8 +637,6 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   
   })
   const finalDecimals = 10 ** parseInt(decimals.toString())
-  const totalAmountInUSD = parseInt((donations.reduce((acc, d) => acc + parseFloat(d.amount), 0) * finalDecimals).toString());
-  console.log({totalAmountInUSD})
   const nonce = await publicClient.readContract({
     abi: [
       {
@@ -665,44 +663,10 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     functionName: 'nonces',
     args: [wallet.account.address],
   });
-
-  const deadline = Math.floor(Date.now() / 1000) + 100_000;
   const usdc = getUsdcAddress(chainId);
   console.log({usdc})
   const usdcTT = getTokenByChainIdAndAddress(chainId, usdc);
   console.log({usdcTT})
-  console.log({
-    deadline: BigInt(deadline),
-    nonce: nonce,
-    owner: wallet.account.address,
-    spender:gitCoinMultiReserveFunderRoundAddress[chainId],
-    usdc:getUsdcAddress(chainId),
-    value: BigInt(totalAmountInUSD),
-    chainId:chainId
-  })
-  if(chainId === 42220){
-    version = "1";
-    usdName = "Glo Dollar"
-  }
-  const signType = usdcSignType({
-    deadline: BigInt(deadline),
-    nonce: nonce,
-    owner: wallet.account.address,
-    spender:gitCoinMultiReserveFunderRoundAddress[chainId],
-    usdc:getUsdcAddress(chainId),
-    value: BigInt(totalAmountInUSD),
-    chainId:chainId,
-    tokenName:usdName,
-    version:version
-  })
-
-  console.log({signType})
-  const signature = await wallet.signTypedData(signType as any);
-
-  const rsv = hexToSignature(signature);
-
-
-
   const groupedDonationsByRoundId = groupBy(
     donations.map((d) => ({
       amount: d.amount,
@@ -743,6 +707,43 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     return new Array(count).fill(key);
   });
   const data = Object.values(groupedEncodedVotes).flat();
+  const totalAmountInUSD = Object.values(amountArray).reduce((acc, b) => acc + b);
+  
+  const deadline = Math.floor(Date.now() / 1000) + 100_000;
+
+  console.log({
+    deadline: BigInt(deadline),
+    nonce: nonce,
+    owner: wallet.account.address,
+    spender:gitCoinMultiReserveFunderRoundAddress[chainId],
+    usdc:getUsdcAddress(chainId),
+    value: totalAmountInUSD,
+    chainId:chainId
+  })
+  if(chainId === 42220){
+    version = "1";
+    usdName = "Glo Dollar"
+  }
+  const signType = usdcSignType({
+    deadline: BigInt(deadline),
+    nonce: nonce,
+    owner: wallet.account.address,
+    spender:gitCoinMultiReserveFunderRoundAddress[chainId],
+    usdc:getUsdcAddress(chainId),
+    value: totalAmountInUSD,
+    chainId:chainId,
+    tokenName:usdName,
+    version:version
+  })
+
+  console.log({signType})
+  const signature = await wallet.signTypedData(signType as any);
+
+  const rsv = hexToSignature(signature);
+
+
+
+ 
   if(!rsv.v){
     throw new Error("Invalid signature")
   }
@@ -779,8 +780,7 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
   })
   const reserveAddress = getAddress("reserve")
 
-  const transferHash = await erc20Transfer(usdcTT.address as `0x${string}`,account.address,BigInt(totalAmountInUSD),chainId,"reserve")
-  console.log({transferHash})
+
   
   // await publicClient.waitForTransactionReceipt({
   //   hash:transferHash as `0x${string}`,
@@ -862,7 +862,13 @@ export async function  fundGitcoinRounds(encryptedKey: string,donations: {
     console.log({transferGasReceipt}) 
     
   }
-  
+  const transferHash = await erc20Transfer(usdcTT.address as `0x${string}`,account.address,Object.values(amountArray).reduce((acc, b) => acc + b),chainId,"reserve")
+  console.log({transferHash})
+  const transferReceipt = await publicClient.waitForTransactionReceipt({
+    hash:transferHash as `0x${string}`,
+    confirmations:1
+  });
+  console.log({transferReceipt}) 
   const gasEstimate = await publicClient.estimateGas({
     account:wallet.account,
     to:gitCoinMultiReserveFunderRoundAddress[chainId] as `0x${string}`,

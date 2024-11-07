@@ -18,9 +18,10 @@ export const handler = EventHandler(Wallet.Events.Created, async (evt) => {
       evt.properties.chainId
     )
     const amount_usdc = parseFloat(amount_usdc_unformated.toString()) / 1_000_000;
-
     
-    if(amount_usdc < 100){
+  
+    
+    if(amount_usdc < 2000){
       await Telegram.sendMessage({
         chatId: "-948252043",
         text: `
